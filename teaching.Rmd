@@ -1,0 +1,14 @@
+---
+title: ''
+---
+
+### Ateliers R
+
+Vous trouverez [ici](documentation/ateliers-r.pdf) les notes de cours pour l'atelier "Introduction à R".  
+
+Click [here](documentation/ateliers-r.pdf) for documentation on the "Introduction to R" workshop (in French).
+
+Website under construction.
+
+
+      
