@@ -8,7 +8,6 @@ Vous trouverez ici les notes de cours pour l'atelier "Introduction à R" --- [PD
 
 Click here for documentation on the "Introduction to R" workshop (in French) --- [PDF](documentation/ateliers-r.pdf); [HTML](documentation/ateliers-r.html).
 
-Website under construction.
 
 
       
