@@ -2,20 +2,9 @@
 title: "Introduction à R"
 author: "Florence Vallée-Dubois"
 output:
+  pdf_document: default
   html_document:
     df_print: paged
-    #toc: yes
-  #pdf_document:
-   # toc: yes
-#header-includes: 
- # \usepackage[french]{babel}
-#  \usepackage[sfdefault,light]{roboto}  
- # \usepackage[T1]{fontenc}
-  #\usepackage[scaled]{helvet}
-  #\renewcommand\familydefault{\sfdefault} 
-  #\usepackage[T1]{fontenc}
-  #\usepackage{sansmathfonts}
-  #\renewcommand*\familydefault{\sfdefault}
 urlcolor: blue
 ---
 
@@ -40,8 +29,7 @@ En anglais:
 
 * Vous tomberez probablement assez vite sur [Stack Overflow](https://stackoverflow.com/) en cherchant des réponses concernant R sur Google. La communauté d'utilisateurs du langage R est très active sur ce site, qui est organisé sous forme de questions-réponses.
 * Je consulte régulièrement le site [R-bloggers](https://www.r-bloggers.com/).
-* Pour suivre des formations en ligne, ma ressource préférée est [DataCamp](https://www.datacamp.com/). Les exercices sont pensés pour un apprentissage graduel et on y offre aussi des formations plus avancées. 
-* J'ai aussi suivi quelques cours sur [Coursera](https://www.coursera.org/). Les cours ont le format de cours universitaires, mais avec la version gratuite, pas besoin de suivre l'entièreté des plans de cours (ni de remettre les travaux).
+* Pour suivre des formations en ligne, il existe le site [Coursera](https://www.coursera.org/). Les cours ont le format de cours universitaires, mais avec la version gratuite: pas besoin de suivre l'entièreté des plans de cours (ni de remettre les travaux).
 
 ### Un aperçu de R Studio
 
