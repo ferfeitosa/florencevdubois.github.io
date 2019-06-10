@@ -281,9 +281,9 @@ $(document).ready(function () {
 ##  [1]    1    1    2    3    5    8   13   21   34   55   89  144  233  377
 ## [15]  610  987 1597 2584
 &gt; 
-&gt; ma.famille &lt;- c(&quot;Nathalie&quot;, &quot;Jean-Francois&quot;, &quot;Anthony&quot;)
+&gt; ma.famille &lt;- c(&quot;Francine&quot;, &quot;Antoine&quot;, &quot;Justin&quot;)
 &gt; ma.famille
-## [1] &quot;Nathalie&quot;      &quot;Jean-Francois&quot; &quot;Anthony&quot;</code></pre>
+## [1] &quot;Francine&quot; &quot;Antoine&quot;  &quot;Justin&quot;</code></pre>
 <p>Rappelez-vous que les vecteurs sont des données du même type, donc si on mélange les types, toutes les données seront converties en un seul type.</p>
 <pre class="r"><code>&gt; fibonacci2 &lt;- c(1, 1, 2, 3, 5, 8, 13, 21, &quot;trente-quatre&quot;)
 &gt; 
@@ -304,94 +304,93 @@ $(document).ready(function () {
 &gt; 
 &gt; # Et la 1ère et 2e données du vecteur 'ma.famille'
 &gt; ma.famille[c(1, 2)]
-## [1] &quot;Nathalie&quot;      &quot;Jean-Francois&quot;
+## [1] &quot;Francine&quot; &quot;Antoine&quot;
 &gt; 
 &gt; # Je pourrais assigner les deux premiers éléments du vecteur 'ma.famille'' à
 &gt; # un autre vecteur, que je nommerai 'mes.parents'.
 &gt; mes.parents &lt;- ma.famille[c(1, 2)]
 &gt; mes.parents
-## [1] &quot;Nathalie&quot;      &quot;Jean-Francois&quot;</code></pre>
+## [1] &quot;Francine&quot; &quot;Antoine&quot;</code></pre>
 </div>
 <div id="liste" class="section level3">
 <h3>Liste</h3>
 <p>Les listes peuvent contenir différents types de données. Elles peuvent aussi contenir des structures de données, comme des vecteurs (mise en abîme des données!).</p>
-<pre class="r"><code>&gt; famille.taille = list(&quot;Nathalie&quot;, 5.4, &quot;Jean-Francois&quot;, 6.4, &quot;Anthony&quot;, 5.7)
+<pre class="r"><code>&gt; famille.taille = list(&quot;Francine&quot;, 5.6, &quot;Antoine&quot;, 5.8, &quot;Justin&quot;, 5.3)
 &gt; famille.taille
 ## [[1]]
-## [1] &quot;Nathalie&quot;
+## [1] &quot;Francine&quot;
 ## 
 ## [[2]]
-## [1] 5.4
+## [1] 5.6
 ## 
 ## [[3]]
-## [1] &quot;Jean-Francois&quot;
+## [1] &quot;Antoine&quot;
 ## 
 ## [[4]]
-## [1] 6.4
+## [1] 5.8
 ## 
 ## [[5]]
-## [1] &quot;Anthony&quot;
+## [1] &quot;Justin&quot;
 ## 
 ## [[6]]
-## [1] 5.7
+## [1] 5.3
 &gt; 
 &gt; # Organisons une liste contenant des vecteurs (mise en abîme!)
-&gt; famille.taille2 = list(c(&quot;Nathalie&quot;, &quot;Jean-Francois&quot;, &quot;Anthony&quot;), c(5.4, 6.4, 
-+     5.7))
+&gt; famille.taille2 = list(c(&quot;Francine&quot;, &quot;Antoine&quot;, &quot;Justin&quot;), c(5.6, 5.8, 5.3))
 &gt; famille.taille2
 ## [[1]]
-## [1] &quot;Nathalie&quot;      &quot;Jean-Francois&quot; &quot;Anthony&quot;      
+## [1] &quot;Francine&quot; &quot;Antoine&quot;  &quot;Justin&quot;  
 ## 
 ## [[2]]
-## [1] 5.4 6.4 5.7
+## [1] 5.6 5.8 5.3
 &gt; # Le 1er élément de cette liste est un vecteur de 3 prénoms, tandis que le
 &gt; # 2e élément de la liste est un vecteur de 3 nombres.
 &gt; 
 &gt; # Je pourrais faire une liste qui associe chaque membre de ma famille à leur
 &gt; # taille
-&gt; famille.taille3 = list(Nathalie = 5.4, `Jean-Francois` = 6.4, Anthony = 5.7)
+&gt; famille.taille3 = list(Francine = 5.6, Antoine = 5.8, Justin = 5.3)
 &gt; famille.taille3
-## $Nathalie
-## [1] 5.4
+## $Francine
+## [1] 5.6
 ## 
-## $`Jean-Francois`
-## [1] 6.4
+## $Antoine
+## [1] 5.8
 ## 
-## $Anthony
-## [1] 5.7
+## $Justin
+## [1] 5.3
 &gt; 
 &gt; # De cette façon, je peux accéder directement à la taille d'un des membres
 &gt; # de ma famille en utilisant les double [ ]
-&gt; famille.taille3[[&quot;Nathalie&quot;]]
-## [1] 5.4
+&gt; famille.taille3[[&quot;Francine&quot;]]
+## [1] 5.6
 &gt; 
 &gt; famille.taille3[1]
-## $Nathalie
-## [1] 5.4
-&gt; # Cela me renvoit le premier élément de la liste. Il s'agit de Nathalie, et
+## $Francine
+## [1] 5.6
+&gt; # Cela me renvoit le premier élément de la liste. Il s'agit de Francine, et
 &gt; # de sa taille.</code></pre>
 </div>
 <div id="data-frame" class="section level3">
 <h3><em>Data frame</em></h3>
 <p>Un <em>data frame</em> (désolée, je n’ai pas trouvé de traduction satisfaisante) contient des données organisées en rangées et en colonnes, comme dans un tableau. Chaque colonne peut avoir un type différent, mais les données <em>au sein</em> d’une même colonne doivent être du même type. Généralement, les colonnes seront associées aux variables, tandis que chaque rangée correspondra à une observation.</p>
-<pre class="r"><code>&gt; famille.info = data.frame(Noms = c(&quot;Nathalie&quot;, &quot;Jean-Francois&quot;, &quot;Anthony&quot;, &quot;Florence&quot;, 
-+     &quot;Michelle&quot;, &quot;Eric&quot;), Taille = c(5.4, 6.4, 5.7, 5.4, 5.3, 6), Yeux = c(&quot;bruns&quot;, 
-+     &quot;bleus&quot;, &quot;verts&quot;, &quot;bruns&quot;, &quot;bruns&quot;, &quot;bruns&quot;), Naissance = c(1964, 1974, 
-+     1989, 1992, 1942, 1991))
+<pre class="r"><code>&gt; famille.info = data.frame(Noms = c(&quot;Francine&quot;, &quot;Antoine&quot;, &quot;Justin&quot;, &quot;Juliette&quot;, 
++     &quot;Pierre&quot;, &quot;Guillaume&quot;), Taille = c(5.6, 5.8, 5.3, 5.4, 5.3, 6), Yeux = c(&quot;bruns&quot;, 
++     &quot;bleus&quot;, &quot;verts&quot;, &quot;bruns&quot;, &quot;bruns&quot;, &quot;bruns&quot;), Naissance = c(1967, 1968, 
++     1983, 1990, 1979, 1985))
 &gt; 
 &gt; # Affichons cet objet
 &gt; famille.info</code></pre>
 <div data-pagedtable="false">
 <script data-pagedtable-source type="application/json">
-{"columns":[{"label":["Noms"],"name":[1],"type":["fctr"],"align":["left"]},{"label":["Taille"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["Yeux"],"name":[3],"type":["fctr"],"align":["left"]},{"label":["Naissance"],"name":[4],"type":["dbl"],"align":["right"]}],"data":[{"1":"Nathalie","2":"5.4","3":"bruns","4":"1964"},{"1":"Jean-Francois","2":"6.4","3":"bleus","4":"1974"},{"1":"Anthony","2":"5.7","3":"verts","4":"1989"},{"1":"Florence","2":"5.4","3":"bruns","4":"1992"},{"1":"Michelle","2":"5.3","3":"bruns","4":"1942"},{"1":"Eric","2":"6.0","3":"bruns","4":"1991"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+{"columns":[{"label":["Noms"],"name":[1],"type":["fctr"],"align":["left"]},{"label":["Taille"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["Yeux"],"name":[3],"type":["fctr"],"align":["left"]},{"label":["Naissance"],"name":[4],"type":["dbl"],"align":["right"]}],"data":[{"1":"Francine","2":"5.6","3":"bruns","4":"1967"},{"1":"Antoine","2":"5.8","3":"bleus","4":"1968"},{"1":"Justin","2":"5.3","3":"verts","4":"1983"},{"1":"Juliette","2":"5.4","3":"bruns","4":"1990"},{"1":"Pierre","2":"5.3","3":"bruns","4":"1979"},{"1":"Guillaume","2":"6.0","3":"bruns","4":"1985"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
   </script>
 </div>
-<p>Cette <em>data frame</em> compte 6 observations (<code>Nathalie, Jean-Francois, Anthony, Florence, Michelle, Eric</code>) et 4 variables (<code>Noms, Taille, Yeux, Naissance</code>).</p>
+<p>Cette <em>data frame</em> compte 6 observations (<code>Francine, Antoine, Justin, Juliette, Pierre, Guillaume</code>) et 4 variables (<code>Noms, Taille, Yeux, Naissance</code>).</p>
 <p>On peut extraire les données qui se trouvent dans une <em>data frame</em>.</p>
 <pre class="r"><code>&gt; # À l'aide du symbole '$', R nous donnera le contenu de cette colonne sous
 &gt; # forme de vecteur
 &gt; famille.info$Taille
-## [1] 5.4 6.4 5.7 5.4 5.3 6.0
+## [1] 5.6 5.8 5.3 5.4 5.3 6.0
 &gt; 
 &gt; # On peut sélectionner plus d'une colonne à l'aide de la notation [ , ]: Ce
 &gt; # qui est inscrit avant la virgule correspond à la rangée, ce qui vient
@@ -399,7 +398,7 @@ $(document).ready(function () {
 &gt; famille.info[, c(&quot;Noms&quot;, &quot;Yeux&quot;)]</code></pre>
 <div data-pagedtable="false">
 <script data-pagedtable-source type="application/json">
-{"columns":[{"label":["Noms"],"name":[1],"type":["fctr"],"align":["left"]},{"label":["Yeux"],"name":[2],"type":["fctr"],"align":["left"]}],"data":[{"1":"Nathalie","2":"bruns"},{"1":"Jean-Francois","2":"bleus"},{"1":"Anthony","2":"verts"},{"1":"Florence","2":"bruns"},{"1":"Michelle","2":"bruns"},{"1":"Eric","2":"bruns"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+{"columns":[{"label":["Noms"],"name":[1],"type":["fctr"],"align":["left"]},{"label":["Yeux"],"name":[2],"type":["fctr"],"align":["left"]}],"data":[{"1":"Francine","2":"bruns"},{"1":"Antoine","2":"bleus"},{"1":"Justin","2":"verts"},{"1":"Juliette","2":"bruns"},{"1":"Pierre","2":"bruns"},{"1":"Guillaume","2":"bruns"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
   </script>
 </div>
 <pre class="r"><code>&gt; 
@@ -410,7 +409,7 @@ $(document).ready(function () {
 &gt; famille.info[, c(1, 3)]</code></pre>
 <div data-pagedtable="false">
 <script data-pagedtable-source type="application/json">
-{"columns":[{"label":["Noms"],"name":[1],"type":["fctr"],"align":["left"]},{"label":["Yeux"],"name":[2],"type":["fctr"],"align":["left"]}],"data":[{"1":"Nathalie","2":"bruns"},{"1":"Jean-Francois","2":"bleus"},{"1":"Anthony","2":"verts"},{"1":"Florence","2":"bruns"},{"1":"Michelle","2":"bruns"},{"1":"Eric","2":"bruns"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+{"columns":[{"label":["Noms"],"name":[1],"type":["fctr"],"align":["left"]},{"label":["Yeux"],"name":[2],"type":["fctr"],"align":["left"]}],"data":[{"1":"Francine","2":"bruns"},{"1":"Antoine","2":"bleus"},{"1":"Justin","2":"verts"},{"1":"Juliette","2":"bruns"},{"1":"Pierre","2":"bruns"},{"1":"Guillaume","2":"bruns"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
   </script>
 </div>
 <pre class="r"><code>&gt; 
@@ -419,7 +418,7 @@ $(document).ready(function () {
 &gt; famille.info[1:3, ]</code></pre>
 <div data-pagedtable="false">
 <script data-pagedtable-source type="application/json">
-{"columns":[{"label":[""],"name":["_rn_"],"type":[""],"align":["left"]},{"label":["Noms"],"name":[1],"type":["fctr"],"align":["left"]},{"label":["Taille"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["Yeux"],"name":[3],"type":["fctr"],"align":["left"]},{"label":["Naissance"],"name":[4],"type":["dbl"],"align":["right"]}],"data":[{"1":"Nathalie","2":"5.4","3":"bruns","4":"1964","_rn_":"1"},{"1":"Jean-Francois","2":"6.4","3":"bleus","4":"1974","_rn_":"2"},{"1":"Anthony","2":"5.7","3":"verts","4":"1989","_rn_":"3"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+{"columns":[{"label":[""],"name":["_rn_"],"type":[""],"align":["left"]},{"label":["Noms"],"name":[1],"type":["fctr"],"align":["left"]},{"label":["Taille"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["Yeux"],"name":[3],"type":["fctr"],"align":["left"]},{"label":["Naissance"],"name":[4],"type":["dbl"],"align":["right"]}],"data":[{"1":"Francine","2":"5.6","3":"bruns","4":"1967","_rn_":"1"},{"1":"Antoine","2":"5.8","3":"bleus","4":"1968","_rn_":"2"},{"1":"Justin","2":"5.3","3":"verts","4":"1983","_rn_":"3"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
   </script>
 </div>
 <pre class="r"><code>&gt; 
@@ -429,7 +428,7 @@ $(document).ready(function () {
 &gt; famille.info[famille.info$Yeux == &quot;bruns&quot;, ]</code></pre>
 <div data-pagedtable="false">
 <script data-pagedtable-source type="application/json">
-{"columns":[{"label":[""],"name":["_rn_"],"type":[""],"align":["left"]},{"label":["Noms"],"name":[1],"type":["fctr"],"align":["left"]},{"label":["Taille"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["Yeux"],"name":[3],"type":["fctr"],"align":["left"]},{"label":["Naissance"],"name":[4],"type":["dbl"],"align":["right"]}],"data":[{"1":"Nathalie","2":"5.4","3":"bruns","4":"1964","_rn_":"1"},{"1":"Florence","2":"5.4","3":"bruns","4":"1992","_rn_":"4"},{"1":"Michelle","2":"5.3","3":"bruns","4":"1942","_rn_":"5"},{"1":"Eric","2":"6.0","3":"bruns","4":"1991","_rn_":"6"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+{"columns":[{"label":[""],"name":["_rn_"],"type":[""],"align":["left"]},{"label":["Noms"],"name":[1],"type":["fctr"],"align":["left"]},{"label":["Taille"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["Yeux"],"name":[3],"type":["fctr"],"align":["left"]},{"label":["Naissance"],"name":[4],"type":["dbl"],"align":["right"]}],"data":[{"1":"Francine","2":"5.6","3":"bruns","4":"1967","_rn_":"1"},{"1":"Juliette","2":"5.4","3":"bruns","4":"1990","_rn_":"4"},{"1":"Pierre","2":"5.3","3":"bruns","4":"1979","_rn_":"5"},{"1":"Guillaume","2":"6.0","3":"bruns","4":"1985","_rn_":"6"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
   </script>
 </div>
 <pre class="r"><code>&gt; 
@@ -437,17 +436,16 @@ $(document).ready(function () {
 &gt; famille.info[famille.info$Yeux == &quot;bruns&quot; &amp; famille.info$Taille &gt; 5.8, ]</code></pre>
 <div data-pagedtable="false">
 <script data-pagedtable-source type="application/json">
-{"columns":[{"label":[""],"name":["_rn_"],"type":[""],"align":["left"]},{"label":["Noms"],"name":[1],"type":["fctr"],"align":["left"]},{"label":["Taille"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["Yeux"],"name":[3],"type":["fctr"],"align":["left"]},{"label":["Naissance"],"name":[4],"type":["dbl"],"align":["right"]}],"data":[{"1":"Eric","2":"6","3":"bruns","4":"1991","_rn_":"6"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+{"columns":[{"label":[""],"name":["_rn_"],"type":[""],"align":["left"]},{"label":["Noms"],"name":[1],"type":["fctr"],"align":["left"]},{"label":["Taille"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["Yeux"],"name":[3],"type":["fctr"],"align":["left"]},{"label":["Naissance"],"name":[4],"type":["dbl"],"align":["right"]}],"data":[{"1":"Guillaume","2":"6","3":"bruns","4":"1985","_rn_":"6"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
   </script>
 </div>
-<pre class="r"><code>&gt; # Une seule personne (Eric) a les yeux bruns et mesure plus de 5.8
-&gt; 
+<pre class="r"><code>&gt; 
 &gt; # Ici, je demande à R d'extraire tous les individus qui ont les yeux bruns
-&gt; # ou (symbole |) qui mesurent plus de 5.8
+&gt; # ou (symbole |) qui mesurent plus de 5.6
 &gt; famille.info[famille.info$Yeux == &quot;bruns&quot; | famille.info$Taille &gt; 5.8, ]</code></pre>
 <div data-pagedtable="false">
 <script data-pagedtable-source type="application/json">
-{"columns":[{"label":[""],"name":["_rn_"],"type":[""],"align":["left"]},{"label":["Noms"],"name":[1],"type":["fctr"],"align":["left"]},{"label":["Taille"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["Yeux"],"name":[3],"type":["fctr"],"align":["left"]},{"label":["Naissance"],"name":[4],"type":["dbl"],"align":["right"]}],"data":[{"1":"Nathalie","2":"5.4","3":"bruns","4":"1964","_rn_":"1"},{"1":"Jean-Francois","2":"6.4","3":"bleus","4":"1974","_rn_":"2"},{"1":"Florence","2":"5.4","3":"bruns","4":"1992","_rn_":"4"},{"1":"Michelle","2":"5.3","3":"bruns","4":"1942","_rn_":"5"},{"1":"Eric","2":"6.0","3":"bruns","4":"1991","_rn_":"6"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+{"columns":[{"label":[""],"name":["_rn_"],"type":[""],"align":["left"]},{"label":["Noms"],"name":[1],"type":["fctr"],"align":["left"]},{"label":["Taille"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["Yeux"],"name":[3],"type":["fctr"],"align":["left"]},{"label":["Naissance"],"name":[4],"type":["dbl"],"align":["right"]}],"data":[{"1":"Francine","2":"5.6","3":"bruns","4":"1967","_rn_":"1"},{"1":"Juliette","2":"5.4","3":"bruns","4":"1990","_rn_":"4"},{"1":"Pierre","2":"5.3","3":"bruns","4":"1979","_rn_":"5"},{"1":"Guillaume","2":"6.0","3":"bruns","4":"1985","_rn_":"6"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
   </script>
 </div>
 <pre class="r"><code>&gt; 
@@ -456,14 +454,14 @@ $(document).ready(function () {
 &gt; famille.info[famille.info$Yeux == &quot;bruns&quot;, c(&quot;Noms&quot;, &quot;Naissance&quot;)]</code></pre>
 <div data-pagedtable="false">
 <script data-pagedtable-source type="application/json">
-{"columns":[{"label":[""],"name":["_rn_"],"type":[""],"align":["left"]},{"label":["Noms"],"name":[1],"type":["fctr"],"align":["left"]},{"label":["Naissance"],"name":[2],"type":["dbl"],"align":["right"]}],"data":[{"1":"Nathalie","2":"1964","_rn_":"1"},{"1":"Florence","2":"1992","_rn_":"4"},{"1":"Michelle","2":"1942","_rn_":"5"},{"1":"Eric","2":"1991","_rn_":"6"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+{"columns":[{"label":[""],"name":["_rn_"],"type":[""],"align":["left"]},{"label":["Noms"],"name":[1],"type":["fctr"],"align":["left"]},{"label":["Naissance"],"name":[2],"type":["dbl"],"align":["right"]}],"data":[{"1":"Francine","2":"1967","_rn_":"1"},{"1":"Juliette","2":"1990","_rn_":"4"},{"1":"Pierre","2":"1979","_rn_":"5"},{"1":"Guillaume","2":"1985","_rn_":"6"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
   </script>
 </div>
 <pre class="r"><code>&gt; 
 &gt; # On peut faire des opérations mathématiques sur les data frames: calculons
 &gt; # la moyenne des tailles
 &gt; mean(famille.info$Taille)
-## [1] 5.7</code></pre>
+## [1] 5.566667</code></pre>
 </div>
 <div id="exercice-1" class="section level3">
 <h3>Exercice 1</h3>
@@ -474,7 +472,7 @@ $(document).ready(function () {
 <h2>Importer et préparer les données</h2>
 <div id="comment-importer" class="section level3">
 <h3>Comment importer</h3>
-<p>La plupart du temps, les banques de données que vous utiliserez seront structurées en <em>data frame</em>. Comme dans un tableau Excel, les colonnes correspondront aux variables et les rangées correspondront aux observations. Si on retourne à l’exemple utilisé plus haut, <code>Nathalie</code> est notre première observation. La rangée qui correspond à cette observation est remplie par différentes variables concernant Nathalie, soit sa taille, la couleur de ses yeux et son année de naissance.</p>
+<p>La plupart du temps, les banques de données que vous utiliserez seront structurées en <em>data frame</em>. Comme dans un tableau Excel, les colonnes correspondront aux variables et les rangées correspondront aux observations. Si on retourne à l’exemple utilisé plus haut, <code>Francine</code> est notre première observation. La rangée qui correspond à cette observation est remplie par différentes variables concernant Francine, soit sa taille, la couleur de ses yeux et son année de naissance.</p>
 <p>Très souvent, vous importerez des banques de données enregistrées en format .csv (données séparées par des virgules). Il se peut que vous utilisiez des banques de données enregistrées sous d’autres formats (ou que vous importiez des banques de données qui se trouvent sur internet). L’avantage avec R, c’est qu’il existe probablement une fonction pour ouvrir ces données. Pour trouver la fonction dont vous avez besoin, je vous conseille de chercher en ligne. Il existe une grande communauté d’utilisateurs et d’utilisatrices du langage R: si vous vous posez une question, il est fort probable que quelqu’un d’autre se la soit posée auparavant! Vous n’êtes pas ignorant.e!</p>
 <p>Avant d’importer une banque de données, il faut d’abord s’assurer qu’elle se trouve dans notre répertoire (<em>working directory</em>). Rappelez-vous: c’est avec ce répertoire que R communique. Tout ce que vous “allez chercher” doit se trouver dans le répertoire que vous avez déjà spécifié.</p>
 <p>Pour importer un fichier .csv, on se sert de la fonction <code>read.csv()</code>.</p>

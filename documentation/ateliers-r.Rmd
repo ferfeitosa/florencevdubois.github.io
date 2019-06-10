@@ -2,9 +2,9 @@
 title: "Introduction à R"
 author: "Florence Vallée-Dubois"
 output:
-  pdf_document: default
   html_document:
     df_print: paged
+  pdf_document: default
 urlcolor: blue
 ---
 
@@ -149,7 +149,7 @@ Les vecteurs sont une série de données du même type.
 fibonacci <- c(1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233, 377, 610, 987, 1597, 2584)
 fibonacci 
 
-ma.famille <- c("Nathalie", "Jean-Francois", "Anthony")
+ma.famille <- c("Francine", "Antoine", "Justin")
 ma.famille
 ```
 
@@ -177,40 +177,40 @@ mes.parents
 ### Liste
 Les listes peuvent contenir différents types de données. Elles peuvent aussi contenir des structures de données, comme des vecteurs (mise en abîme des données!).
 ```{r}
-famille.taille = list("Nathalie", 5.4, "Jean-Francois", 6.4, "Anthony", 5.7) 
+famille.taille = list("Francine", 5.6, "Antoine", 5.8, "Justin", 5.3) 
 famille.taille
 
 # Organisons une liste contenant des vecteurs (mise en abîme!)
-famille.taille2 = list(c("Nathalie", "Jean-Francois", "Anthony"), c(5.4, 6.4, 5.7))
+famille.taille2 = list(c("Francine", "Antoine", "Justin"), c(5.6, 5.8, 5.3))
 famille.taille2
 # Le 1er élément de cette liste est un vecteur de 3 prénoms, tandis que le 2e élément de la liste est un vecteur de 3 nombres.
 
 # Je pourrais faire une liste qui associe chaque membre de ma famille à leur taille 
-famille.taille3 = list("Nathalie" = 5.4, "Jean-Francois" = 6.4, "Anthony" = 5.7)
+famille.taille3 = list("Francine" = 5.6, "Antoine" = 5.8, "Justin" = 5.3)
 famille.taille3
 
 # De cette façon, je peux accéder directement à la taille d'un des membres de ma famille en utilisant les double [ ]
-famille.taille3[["Nathalie"]]
+famille.taille3[["Francine"]]
 
 famille.taille3[1]
-# Cela me renvoit le premier élément de la liste. Il s'agit de Nathalie, et de sa taille.
+# Cela me renvoit le premier élément de la liste. Il s'agit de Francine, et de sa taille.
 ```
 
 ### _Data frame_
 
 Un _data frame_ (désolée, je n'ai pas trouvé de traduction satisfaisante) contient des données organisées en rangées et en colonnes, comme dans un tableau. Chaque colonne peut avoir un type différent, mais les données _au sein_ d'une même colonne doivent être du même type. Généralement, les colonnes seront associées aux variables, tandis que chaque rangée correspondra à une observation.  
 ```{r}
-famille.info = data.frame("Noms" = c("Nathalie", "Jean-Francois", "Anthony", "Florence", 
-                                     "Michelle", "Eric"), 
-                          "Taille" = c(5.4, 6.4, 5.7, 5.4, 5.3, 6.0), 
+famille.info = data.frame("Noms" = c("Francine", "Antoine", "Justin", "Juliette", 
+                                     "Pierre", "Guillaume"), 
+                          "Taille" = c(5.6, 5.8, 5.3, 5.4, 5.3, 6.0), 
                           "Yeux" = c("bruns", "bleus", "verts", "bruns", "bruns", 
                                      "bruns"), 
-                          "Naissance" = c(1964, 1974, 1989, 1992, 1942, 1991))
+                          "Naissance" = c(1967, 1968, 1983, 1990, 1979, 1985))
 
 # Affichons cet objet 
 famille.info
 ```
-Cette _data frame_ compte 6 observations (`Nathalie, Jean-Francois, Anthony, Florence, Michelle, Eric`) et 4 variables (`Noms, Taille, Yeux, Naissance`).
+Cette _data frame_ compte 6 observations (`Francine, Antoine, Justin, Juliette, Pierre, Guillaume`) et 4 variables (`Noms, Taille, Yeux, Naissance`).
 
 On peut extraire les données qui se trouvent dans une _data frame_.
 ```{r}
@@ -231,9 +231,8 @@ famille.info[famille.info$Yeux == "bruns", ]
 
 # On peut spécifier plusieurs conditions
 famille.info[famille.info$Yeux == "bruns" & famille.info$Taille > 5.8, ] 
-# Une seule personne (Eric) a les yeux bruns et mesure plus de 5.8
 
-# Ici, je demande à R d'extraire tous les individus qui ont les yeux bruns ou (symbole |) qui mesurent plus de 5.8
+# Ici, je demande à R d'extraire tous les individus qui ont les yeux bruns ou (symbole |) qui mesurent plus de 5.6
 famille.info[famille.info$Yeux == "bruns" | famille.info$Taille > 5.8, ] 
 
 # Je veux savoir le noms et les dates de naissance (rien d'autre) des individus qui ont les cheveux bruns 
@@ -251,7 +250,7 @@ Créez une _data frame_ contenant des données d'au moins 2 types différents. V
 
 ### Comment importer
 
-La plupart du temps, les banques de données que vous utiliserez seront structurées en _data frame_. Comme dans un tableau Excel, les colonnes correspondront aux variables et les rangées correspondront aux observations. Si on retourne à l'exemple utilisé plus haut, `Nathalie` est notre première observation. La rangée qui correspond à cette observation est remplie par différentes variables concernant Nathalie, soit sa taille, la couleur de ses yeux et son année de naissance. 
+La plupart du temps, les banques de données que vous utiliserez seront structurées en _data frame_. Comme dans un tableau Excel, les colonnes correspondront aux variables et les rangées correspondront aux observations. Si on retourne à l'exemple utilisé plus haut, `Francine` est notre première observation. La rangée qui correspond à cette observation est remplie par différentes variables concernant Francine, soit sa taille, la couleur de ses yeux et son année de naissance. 
 
 Très souvent, vous importerez des banques de données enregistrées en format .csv (données séparées par des virgules). Il se peut que vous utilisiez des banques de données enregistrées sous d'autres formats (ou que vous importiez des banques de données qui se trouvent sur internet). L'avantage avec R, c'est qu'il existe probablement une fonction pour ouvrir ces données. Pour trouver la fonction dont vous avez besoin, je vous conseille de chercher en ligne. Il existe une grande communauté d'utilisateurs et d'utilisatrices du langage R: si vous vous posez une question, il est fort probable que quelqu'un d'autre se la soit posée auparavant! Vous n'êtes pas ignorant.e!
 
