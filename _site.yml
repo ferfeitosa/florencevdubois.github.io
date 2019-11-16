@@ -10,7 +10,7 @@ navbar:
     #- text: "À propos - About"
      # icon: fa-user 
       #href: about.html
-    - text: "Publications"
+    - text: "Recherche - Research"
       #icon: fa-user 
       href: publications.html
     - text: "Enseignement - Teaching"

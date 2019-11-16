@@ -2,6 +2,14 @@
 title: ''
 ---
 
+Je suis disponible pour enseigner des ateliers d'introduction au langage R. Si vous voulez apprendre vous-même, je rends aussi accessibles mes notes de cours (voir plus bas).
+
+J'ai enseigné le cours Méthodes quantitatives d'analyses (POL 2809), un cours de niveau baccalauréat à l'Université de Montréal. C'est un véritable plaisir pour moi d'enseigner, et j'espère pouvoir être utile en rendant disponible plubliquement mon plan de cours, les présentations visuelles que j'ai utilisées en classe et certaines idées d'activités pédagogiques. N'hésitez pas à me contacter pour toute question!
+
+I am available to teach Intro to R workshops. If you would rather learn by yourself, my workshop notes are available below. 
+
+I taught an undergraduate-level class in Quantitative Methods at the University of Montreal in the Fall of 2019. Teaching is one of the rewarding things I do for a living, and I hope to be useful by making publicly available my syllabus, the visual presentations I used in class, and a few ideas for in-class activities. Contact me if you have any questions!
+
 ### Ateliers R
 
 Vous trouverez ici les notes de cours pour l'atelier "Introduction à R" --- [PDF](documentation/ateliers-r.pdf); [HTML](documentation/ateliers-r.html).
