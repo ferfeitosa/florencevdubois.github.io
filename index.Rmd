@@ -2,10 +2,10 @@
 title: "Florence Vallée-Dubois"
 ---
 
-Je suis étudiante au doctorat au département de science politique de l'Université de Montréal. Je suis également membre du [Centre pour l'étude de la citoyenneté démocratique](http://csdc-cecd.ca/fr/) (CÉCD) et de la [Chaire de recherche du Canada en démocratie électorale](https://www.chairedemocratie.com/fr). Mes intérêts de recherche portent sur la politique québécoise et canadienne, le comportement politique et les méthodes quantitatives. Mon projet de thèse doctorale porte sur le comportement politique des personnes âgées au Québec et au Canada.
+Je suis candidate au doctorat au département de science politique de l'Université de Montréal. Je suis également membre du [Centre pour l'étude de la citoyenneté démocratique](http://csdc-cecd.ca/fr/) (CÉCD) et de la [Chaire de recherche du Canada en démocratie électorale](https://www.chairedemocratie.com/fr). Mes intérêts de recherche portent sur la politique québécoise et canadienne, le comportement politique et les méthodes quantitatives. Mon projet de thèse doctorale porte sur le comportement politique ainsi que la représentation démocratique des personnes âgées.
 
 Consultez mon C.V. [ici](documentation/cv-fvd-fr.pdf).
 
-I am a Ph.D. candidate at the department of political science of the University of Montreal. I am also a member of the [Centre for the Study of Democratic Citizenship](http://csdc-cecd.ca/) and [Canada Research Chair in Electoral Democracy](https://www.chairedemocratie.com/). My research interests focus on Quebec and Canadian politics, political behaviour and quantitative methods. My doctoral project focuses on the political behaviour of seniors in Quebec and Canada.
+I am a Ph.D. candidate at the department of political science of the University of Montreal. I am also a member of the [Centre for the Study of Democratic Citizenship](http://csdc-cecd.ca/) and [Canada Research Chair in Electoral Democracy](https://www.chairedemocratie.com/). My research interests focus on Quebec and Canadian politics, political behaviour and quantitative methods. My doctoral project focuses on the political behaviour and democratic representation of seniors in Canada.
 
 You can find my CV [here](documentation/cv-fvd-eng.pdf).
