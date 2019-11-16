@@ -1,7 +1,5 @@
 ---
 title: "Florence Vallée-Dubois"
-lang: en
-ref: hello
 ---
 
 Je suis candidate au doctorat au département de science politique de l'Université de Montréal. Je suis également membre du [Centre pour l'étude de la citoyenneté démocratique](http://csdc-cecd.ca/fr/) (CÉCD) et de la [Chaire de recherche du Canada en démocratie électorale](https://www.chairedemocratie.com/fr). Mes intérêts de recherche portent sur la politique québécoise et canadienne, le comportement politique et les méthodes quantitatives. Mon projet de thèse doctorale porte sur le comportement politique ainsi que la représentation démocratique des personnes âgées.
