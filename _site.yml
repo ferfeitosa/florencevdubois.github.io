@@ -20,15 +20,18 @@ navbar:
      # icon: fa-rss
       #href: https://YOURGITHUB.github.io/blog/  # CHANGE HERE OR DELETE ALL 3 LINES 
   right:
-    - text: "Contact"
+    - text: ""
       icon: fa-envelope-o
       href: mailto:florence.vallee-dubois@umontreal.ca                    # CHANGE HERE 
    # - text: "CV"
       # icon: fa-file-pdf-o
     #  href: cv.html
-    - text: "GitHub"
+    - text: ""
       icon: fa-github
       href: https://github.com/florencevdubois       # CHANGE HERE 
+    - text: ""
+      icon: fa-twitter
+      href: https://twitter.com/florencevdubois
 output:
   html_document:
     theme: cosmo
