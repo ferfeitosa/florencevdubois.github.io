@@ -362,13 +362,12 @@ $(document).ready(function () {
 <h3>25 February 2020</h3>
 <p>Start by loading the necessary packages and the measles data.</p>
 <pre class="r"><code># packages
-library(tidytuesdayR)
 library(tidyverse)
 library(pacman)
 library(tidyverse)
 
 # data
-measles &lt;- readr::read_csv(&#39;https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-02-25/measles.csv&#39;)# packages</code></pre>
+measles &lt;- readr::read_csv(&#39;https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-02-25/measles.csv&#39;)</code></pre>
 <p>Let’s explore the data.</p>
 <pre class="r"><code>summary(measles$mmr) # distribution of vaccination rates
 summary(measles$overall) # distribution of vaccination rates

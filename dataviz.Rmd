@@ -19,13 +19,12 @@ Below, you will find some of the graphs (and accompanying code) I made as part o
 Start by loading the necessary packages and the measles data.
 ```{r}
 # packages
-library(tidytuesdayR)
 library(tidyverse)
 library(pacman)
 library(tidyverse)
 
 # data
-measles <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-02-25/measles.csv')# packages
+measles <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-02-25/measles.csv')
 ```
 
 Let's explore the data.
