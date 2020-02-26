@@ -12,7 +12,7 @@ knitr::opts_chunk$set(echo = TRUE, results = "hide", message = FALSE)
 
 ## Tidy Tuesdays
 
-Below, you will find some of the graphs (and accompanying code) I made as part of  [R4DS](https://twitter.com/R4DScommunity)'s weekly visualization challenges. To see the code, click on the 'code' icon every step of the way. All of the entries I made for #TidyTuesday can be found on my [Github](https://github.com/florencevdubois/MyTidyTuesdays) page.
+Below, you will find some of the graphs (and accompanying code) I made as part of  the [R4DS](https://twitter.com/R4DScommunity) weekly visualization challenges. All of the entries I made for #TidyTuesday can be found on my [Github](https://github.com/florencevdubois/MyTidyTuesdays) page.
 
 ### 25 February 2020 
 
