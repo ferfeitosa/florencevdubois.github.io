@@ -16,6 +16,11 @@ navbar:
     - text: "Enseignement - Teaching"
       #icon: fa-user 
       href: teaching.html
+    - text: "Divers - Miscellaneous"
+      menu:
+        - text: "Data viz / Visualisation"
+        #- icon:
+        - href: dataviz.html
   #  - text: "Blog"
      # icon: fa-rss
       #href: https://YOURGITHUB.github.io/blog/  
