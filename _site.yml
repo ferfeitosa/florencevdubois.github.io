@@ -18,17 +18,17 @@ navbar:
       href: teaching.html
   #  - text: "Blog"
      # icon: fa-rss
-      #href: https://YOURGITHUB.github.io/blog/  # CHANGE HERE OR DELETE ALL 3 LINES 
+      #href: https://YOURGITHUB.github.io/blog/  
   right:
     - text: ""
       icon: fa-envelope-o
-      href: mailto:florence.vallee-dubois@umontreal.ca                    # CHANGE HERE 
+      href: mailto:florence.vallee-dubois@umontreal.ca                     
    # - text: "CV"
       # icon: fa-file-pdf-o
     #  href: cv.html
     - text: ""
       icon: fa-github
-      href: https://github.com/florencevdubois       # CHANGE HERE 
+      href: https://github.com/florencevdubois       
     - text: ""
       icon: fa-twitter
       href: https://twitter.com/florencevdubois
