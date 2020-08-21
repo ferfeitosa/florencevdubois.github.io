@@ -12,7 +12,12 @@ knitr::opts_chunk$set(eval = F, echo = TRUE, results = "hide", message = FALSE)
 
 ## Canadian Demographics by Electoral Riding (1991-2015)
 
-Censuses of Canada are carried out every five years. Since 1991, the census data is available at the level of federal electoral districts. It is thus possible to match these data with parliamentary data (i.e, info on who has been elected in each riding through time). I did this work as part of my doctoral dissertation. Here, I share the process with you. It is heavy in regular expressions and required a lot of back-and-forth between the code and output, so comments are more than welcome on how to improve the end result. 
+Censuses of Canada are carried out every five years. Since 1991, the census data is available at the level of federal electoral districts. It is thus possible to match these data with parliamentary data (i.e, info on who has been elected in each riding through time). I did this work as part of my doctoral dissertation. The end product looks like this, with observations for every MP. It is accompanied with info on which riding they represented (and when) and how many people were in each age category in their riding at the time of their election.
+
+![](documentation/census-parliament-img.png){width=1000px}
+
+
+Here, I share with you the code I used to get to this end product. It is heavy in regular expressions and required a lot of back-and-forth between the code and output, so comments are more than welcome on how to improve the end result. 
 
 Because most elections since 1991 happened between census years (1993-1997-2000-2004-2006-2008-2011-2015), I will predict population data in-between census years using imputation in order to obtain demographics on election years. As of now, I focused on the population's age, but I intend to extend this work to other demographic profiles that are available at the level of federal ridings.
 
@@ -38,7 +43,15 @@ Some info on representation orders:
 - [RO 2003](https://www.elections.ca/content.aspx?section=res&dir=cir/list&document=index&lang=e#list)
 - [Boundaries](https://open.canada.ca/data/en/dataset?q=%22Federal+Electoral+Districts+of+Canada%22&collection=geogratis&sort=&page=1)
 
-In what follows, we fill 1) recode each census dataset (using the right representation order). In some instance, we will need to recode the same census twice, under two different representation orders (this is the case in 1996, 2001 and 2011) because different r.o. will be used for different parliaments. 2) We will then merge censuses together by representation order. 3) We will impute demographic values for the years that fall in-between census years. 4) We will clean-up the Parliament data, which contains info on MPs elected in the House, their riding, party, gender, etc. 5) Finaly, we will merge the demographics data with the parliament data. There is a LOT of code so I recommend hiding all code (use the button at the top of this page), then showing one chunk at a time as you read this post. You will need these packages to follow along: 
+In what follows, we will 
+
+1) Recode each census dataset (using the right representation order). In some instance, we will need to recode the same census twice, under two different representation orders (this is the case in 1996, 2001 and 2011) because different r.o. will be used for different parliaments. 
+2) Merge censuses together by representation order. 
+3) Impute demographic values for the years that fall in-between census years. 
+4) Clean-up the Parliament data, which contains info on MPs elected in the House, their riding, party, gender, etc. 
+5) Finaly, we will merge the demographics data with the parliament data. 
+
+There is a LOT of code so I recommend hiding all code (use the button at the top of this page), then showing one chunk at a time as you read this post. You will need these packages to follow along: 
 
 ```{r}
 library(tidyverse)
@@ -48,7 +61,7 @@ library(fuzzyjoin) # i'm not even sure I ended up using it, but made a few attem
 
 ### 1) Recoding Censuses by Representation Order
 
-I found the raw census datasets on the [website of Statistics Canada](https://www12.statcan.gc.ca/datasets/index-eng.cfm?Temporal=2016). Selecting "Federal electoral distric" under the "Geography" tab, you will see which census data products are available at the level of ridings. For now, I got the "Age and sex" topic and downloaded every census file available. The older files are available in a weird format (Beyond 20/20). Beyond 20/20 can be used on Windows. I am a Mac user, but opened the files on a Windows machine, then saved them in .csv. If you don't want to go through the hassle, I've made the .csv files available on Github.
+I found the raw census datasets on the [website of Statistics Canada](https://www12.statcan.gc.ca/datasets/index-eng.cfm?Temporal=2016). Selecting "Federal electoral distric" under the "Geography" tab, you will see which census data products are available at the level of ridings. For now, I got the "Age and sex" topic and downloaded every census file available. The older files are available in a weird format (Beyond 20/20). Beyond 20/20 can be used on Windows. I am a Mac user, but opened the files on a Windows machine, then saved them in .csv. If you don't want to go through the hassle, I've made the .csv files available in the [Github repo](https://github.com/florencevdubois/florencevdubois.github.io) for this website.
 
 I will not be walking you through each dataset recode, but basically we start by reshaping the data from wide to long in order to get an observation for each riding/age combination (for e.g. Rosemont 0 yr old, Rosemont 1 yr old, Rosemont 2yrs old, etc.) This tells us how many people of every age are in each riding. Then, we'll clean-up the names of ridings (remove special characters, etc.) This is where I had to do the most back-and-forth, because some census years used different spellings for the same riding (double dashes instead of single ones, for e.g.), so in the end I needed to change some spellings manually. It's a good thing I had some knowledge about Canadian federal ridings ;)
 
@@ -1576,7 +1589,7 @@ d <- full_join(join34, join35) %>%
   full_join(join41) %>% 
   full_join(join42)
 
-write.csv(d, file = "documentation/data/output/census_parliament.csv")
+write.csv(d, file = "documentation/data/output/census_parliament.csv") # You can find the final product in the following path in the Github repo for this website.
 ```
 
-And, that's a wrap! There is an observation for every MP elected in the House between 1988 and 2015. The 1991 census information is used for the 34th parliament (1988-1993) because we did not have census data prior to 1991. Every age group is its own variable (columns), from 0 to 100. Note that the 1991 and 1996 censuses capped the age groups at 90 years old. Those older were categorized as 90 year olds. This is why there are no values in the 90-100 variables for the years 1991 to 2000, which were all imputed using the 1991 or 1996 censuses. The party affiliation variable is not clean yet, but it's on my to-do list, so stay tuned!
+And, that's a wrap! There is an observation for every MP elected in the House between 1988 and 2015. The year variable ranges from 1991 to 2015 because the 1991 census information is used for the 34th parliament (1988-1993), as we did not have census data prior to 1991. Other years correspond to the starting years of each Parliament (1993, 1997, 2000, 2004, 2006, 2008, 2015). Every age group is its own variable (columns), from 0 to 100. Note that the 1991 and 1996 censuses capped the age groups at 90 years old. People older than 90 were categorized as 90 year olds. This is why there are no values in the 90-100 variables for the years 1991 to 2000, which were all imputed using the 1991 or 1996 censuses. The party affiliation variable is not clean yet, but it's on my to-do list, so stay tuned!
