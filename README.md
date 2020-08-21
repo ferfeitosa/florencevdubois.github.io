@@ -1,2 +1,2 @@
 # florencevdubois.github.io
-personal website
+In this repo, you will find all the files i used to create my personal website with [Github pages](https://pages.github.com/) and [Rmarkdown](https://bookdown.org/yihui/blogdown/github-pages.html). I used different resources to help with building this website, including this [video](https://www.youtube.com/watch?v=0GjUWgl03vA) from [Florian Privé](https://github.com/privefl).  

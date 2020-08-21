@@ -1,0 +1,14 @@
+---
+title: "Datasets / Données"
+output:
+  html_document:
+    code_folding: show
+    toc: TRUE
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, results = "hide", message = FALSE)
+```
+
+## Canadian Demographics by Electoral Riding (1991-2015)
+
