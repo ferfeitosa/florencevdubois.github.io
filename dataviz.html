@@ -351,6 +351,7 @@ $(document).ready(function () {
 <ul>
 <li><a href="#tidy-tuesdays">Tidy Tuesdays</a><ul>
 <li><a href="#february-2020">25 February 2020</a></li>
+<li><a href="#june-2020">9 June 2020</a></li>
 </ul></li>
 </ul>
 </div>
@@ -368,7 +369,7 @@ library(tidyverse)
 
 # data
 measles &lt;- readr::read_csv(&#39;https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-02-25/measles.csv&#39;)</code></pre>
-<p>Let’s explore the data.</p>
+<p>Let's explore the data.</p>
 <pre class="r"><code>summary(measles$mmr) # distribution of vaccination rates
 summary(measles$overall) # distribution of vaccination rates
 
@@ -386,7 +387,7 @@ table(measles$year, useNA = &quot;always&quot;) # which years?</code></pre>
   gather(type, value, overall:mmr) %&gt;% 
   filter(value &gt;= 0) %&gt;% 
   filter(!(drop == &quot;drop&quot; &amp; type == &quot;overall&quot;))</code></pre>
-<p>Finally, let’s draw the map! I will be using the <code>maps</code> package to do so. I had help from Kieran Healy’s <a href="https://socviz.co/maps.html#maps">book</a> during this step, as well as Timo Grossenbacher’s <a href="https://timogrossenbacher.ch/2016/12/beautiful-thematic-maps-with-ggplot2-only/">blog</a>.</p>
+<p>Finally, let's draw the map! I will be using the <code>maps</code> package to do so. I had help from Kieran Healy's <a href="https://socviz.co/maps.html#maps">book</a> during this step, as well as Timo Grossenbacher's <a href="https://timogrossenbacher.ch/2016/12/beautiful-thematic-maps-with-ggplot2-only/">blog</a>.</p>
 <pre class="r"><code># load packages
 library(maps)
 library(mapproj)
@@ -407,7 +408,7 @@ p1 &lt;- p + geom_polygon(color = &quot;white&quot;, size = 0.1) +
   theme_minimal()
 p1</code></pre>
 <p><img src="dataviz_files/figure-html/unnamed-chunk-4-1.png" width="672" /></p>
-<p>Now that we know the map is working at the vaccination data makes sense, we can plot vaccination rates across the U.S. But first, for the map’s caption, we need to check which type of vaccination rate is plotted in which state:</p>
+<p>Now that we know the map is working at the vaccination data makes sense, we can plot vaccination rates across the U.S. But first, for the map's caption, we need to check which type of vaccination rate is plotted in which state:</p>
 <pre class="r"><code>table(measles_plot_viz$type, measles_plot_viz$state) </code></pre>
 <pre><code>##          
 ##           Arizona Arkansas California Colorado Connecticut Florida Idaho
@@ -466,6 +467,83 @@ p1 &lt;- p +
 p1</code></pre>
 <p><img src="dataviz_files/figure-html/unnamed-chunk-6-1.png" width="1440" /></p>
 <pre class="r"><code># save plot using ggsave(filename = &quot;name.png&quot;, plot = last_plot(), width = 15, height = 15)</code></pre>
+</div>
+<div id="june-2020" class="section level3">
+<h3>9 June 2020</h3>
+<p>Start by loading the necessary packages and the data on African-American firsts.</p>
+<pre class="r"><code>library(tidyverse)
+library(extrafont)
+
+firsts &lt;- readr::read_csv(&#39;https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-06-09/firsts.csv&#39;)
+
+# Let&#39;s explore some variables 
+table(firsts$category)</code></pre>
+<p>Now, we will recode the data. We will focus on the <code>person</code> variable, which contains the information on who the achiever is, and what they've accomplished. Once we've cleaned up the <code>person</code> variable, we will create a categorical variable for the decade of achievement, and collapse everyone (and their accomplishment) from the same decade together into one observation. The last thing we will do is insert a new line every 20 characters. If we do not insert the new line, the text will run too wide in the graph.</p>
+<pre class="r"><code>dat &lt;- firsts %&gt;% 
+  mutate(person_sh = str_remove_all(person, &quot;\\(.*\\)&quot;), # remove everything in parenthesis
+         person_sh = str_remove_all(person, &quot;\\(.*&quot;), # remove everything in parenthesis
+         person_sh = str_remove_all(person_sh, &quot;\\[.*\\]&quot;), # remove brackets and their content
+         person_sh = str_trim(person_sh, &quot;right&quot;), # remove white space at the end of names
+         person_complete = str_c(person_sh, &quot;, &quot;, accomplishment), # create complete name + accomplishment title
+         word_count = str_count(person_complete), # count number of words in complete names
+         count = 1,
+         person_complete = str_replace_all(person_complete, &quot;African-American&quot;, &quot;Af-Am&quot;), # shorten for visualization purposes
+         twenty_yr = ifelse(year &lt;= 1780, &#39;1760s-70s&#39;, 
+                            ifelse(year &gt;= 1781 &amp; year &lt;= 1800, &quot;1780s-90s&quot;,
+                                          ifelse(year &gt;= 1801 &amp; year &lt;= 1820, &quot;1800s-10s&quot;,
+                                                 ifelse(year &gt;= 1821 &amp; year &lt;= 1840, &quot;1820s-30s&quot;,
+                                                        ifelse(year &gt;= 1841 &amp; year &lt;= 1860, &quot;1840s-50s&quot;,
+                                                               ifelse(year &gt;= 1861 &amp; year &lt;= 1880, &quot;1860s-70s&quot;,
+                                                                      ifelse(year &gt;= 1881 &amp; year &lt;= 1900, &quot;1880s-90s&quot;,
+                                                                             ifelse(year &gt;= 1901 &amp; year &lt;= 1920, &quot;1900s-10s&quot;,
+                                                                                    ifelse(year &gt;= 1921 &amp; year &lt;= 1940, &quot;1920s-30s&quot;,
+                                                                                           ifelse(year &gt;= 1941 &amp; year &lt;= 1960, &quot;1940s-50s&quot;,
+                                                                                                  ifelse(year &gt;= 1961 &amp; year &lt;= 1980, &quot;1960s-70s&quot;,
+                                                                                                         ifelse(year &gt;= 1981 &amp; year &lt;= 2000, &quot;1980s-90s&quot;, &quot;2000s-10s&quot;))))))))))))) %&gt;% # create categorical variable for twenty years 
+  group_by(twenty_yr, category) %&gt;% 
+  mutate(persons_20 = paste0(person_complete, collapse = &quot;; &quot;)) %&gt;% # collapse strings for each twenty years and category
+  ungroup() %&gt;% 
+  group_by(category) %&gt;%
+  mutate(count_cat = cumsum(count)) %&gt;%
+  ungroup() %&gt;% 
+  distinct(twenty_yr, count_cat, category, persons_20) %&gt;% 
+  group_by(twenty_yr, category) %&gt;% 
+  arrange(count_cat) %&gt;% 
+  filter(row_number() == n()) 
+
+dat$persons_20 &lt;- gsub(&quot;(.{15,}?)\\s&quot;, &quot;\\1\n&quot;, dat$persons_20) # insert new line every 15 characters</code></pre>
+<p>Let's make the graph! I was inspired by G. Karamanis's work to do this graph. You can check out his work <a href="https://github.com/gkaramanis/tidytuesday/blob/master/2020-week23/marbles-race.R">here</a>. I decided to plot accomplishments in the Arts and Entertainment only, but you could do the same with science, education, sports, etc.</p>
+<pre class="r"><code># plot, Arts only
+viz &lt;- dat %&gt;% filter(category == &quot;Arts &amp; Entertainment&quot;)
+
+p &lt;- ggplot(viz, aes(x = twenty_yr, y = count_cat))
+p1 &lt;- p + 
+  scale_y_continuous(name = &quot;&quot;, 
+                     limits = c(-700,700)) +
+  scale_x_discrete(name = &quot;&quot;,
+                   expand = c(0.2, 0)) +
+  annotate(&quot;text&quot;, x = viz$twenty_yr, # add names 
+           y = viz$count_cat, 
+           label = viz$persons_20, 
+           size = 2.5, 
+           color = &quot;white&quot;,
+           family = &quot;Arial Narrow&quot;) +
+  annotate(&quot;text&quot;, x = &quot;1760s-70s&quot;, # add title 
+           y = 400, 
+           label = &quot;First\nAfrican Americans\nin Arts &amp; Entertainment&quot;, 
+           size = 15, 
+           hjust = 0,
+           color = &quot;white&quot;,
+           family = &quot;Andale Mono&quot;) +
+  theme_void() +
+  coord_cartesian(clip = &quot;off&quot;) +
+  theme(plot.background = element_rect(fill = &#39;grey11&#39;, colour = &#39;grey11&#39;),
+        plot.margin = margin(200, 40, 100, 30), # play with margins
+        axis.text.x = element_text(colour = &quot;gray69&quot;, # modify x axis 
+                                   size = 15,
+                                   family = &quot;Andale Mono&quot;))
+p1</code></pre>
+<p><img src="dataviz_files/figure-html/unnamed-chunk-9-1.png" width="1920" /></p>
 </div>
 </div>
 
