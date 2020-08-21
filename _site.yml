@@ -23,7 +23,7 @@ navbar:
         - href: dataviz.html
         - text: "Datasets / Données"
         #- icon:
-        #- href: dataviz.html
+        - href: datasets.html
   #  - text: "Blog"
      # icon: fa-rss
       #href: https://YOURGITHUB.github.io/blog/  
