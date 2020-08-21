@@ -12,7 +12,9 @@ knitr::opts_chunk$set(eval = F, echo = TRUE, results = "hide", message = FALSE)
 
 ## Canadian Demographics by Electoral Riding (1991-2015)
 
-Censuses of Canada are carried out every five years. Since 1991, the census data is available at the level of federal electoral districts. It is thus possible to match these data with parliamentary data (i.e, info on who has been elected in each riding through time). I did this work as part of my doctoral dissertation. The end product looks like this, with observations for every MP. It is accompanied with info on which riding they represented (and when) and how many people were in each age category in their riding at the time of their election.
+Note: I did this work as part of my doctoral dissertation and I am currently using the dataset in a working paper. Here's how to cite the data when using it in your own work: Vallée-Dubois, Florence. (2020). Canadian Parliamentarians and Census Data, 1991-2015 [data file]. 
+
+Censuses of Canada are carried out every five years. Since 1991, the census data is available at the level of federal electoral districts. It is thus possible to match these data with parliamentary data (i.e, info on who has been elected in each riding through time). The end product looks like this, with observations for every MP. It is accompanied with info on which riding they represented (and when) and how many people were in each age category in their riding at the time of their election.
 
 ![](documentation/census-parliament-img.png){width=1000px}
 
