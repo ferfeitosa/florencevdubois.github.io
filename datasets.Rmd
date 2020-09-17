@@ -14,25 +14,27 @@ knitr::opts_chunk$set(eval = F, echo = TRUE, results = "hide", message = FALSE)
 
 Note: I did this work as part of my doctoral dissertation and I am currently using the dataset in a working paper. Here's how to cite the data when using it in your own work: Vallée-Dubois, Florence. (2020). Canadian Parliamentarians and Census Data, 1991-2015 [data file]. 
 
-Censuses of Canada are carried out every five years. Since 1991, the census data is available at the level of federal electoral districts. It is thus possible to match these data with parliamentary data (i.e, info on who has been elected in each riding through time). The end product looks like this, with observations for every MP. It is accompanied with info on which riding they represented (and when) and how many people were in each age category in their riding at the time of their election.
+Censuses of Canada are carried out every five years. Since 1991, the census data is available at the level of federal electoral districts, so it is possible to match these data with information on parliamentarians (i.e, info on who has been elected in each riding). The end product looks like this, with observations for every MP, with info their riding at the time of their election.
 
 ![](documentation/census-parliament-img.png){width=1000px}
 
 
-Here, I share with you the code I used to get to this end product. It is heavy in regular expressions and required a lot of back-and-forth between the code and output, so comments are more than welcome on how to improve the end result. 
+Here, I share with you the code I used to get there. It required dealing text data (the ridings' name), and a lot of back-and-forth between the code and output. I welcome comments on how to improve this code! 
 
-Because most elections since 1991 happened between census years (1993-1997-2000-2004-2006-2008-2011-2015), I will predict population data in-between census years using imputation in order to obtain demographics on election years. As of now, I focused on the population's age, but I intend to extend this work to other demographic profiles that are available at the level of federal ridings.
+### Some context 
 
-There is one important challenge before we start working on matching the censuses with parliamentary data: representation orders changed since the early 1990s. In other words, there has been redistricting. 
+Because most elections since 1991 happened between census years (1993-1997-2000-2004-2006-2008-2011-2015), I interpolated population data in-between census years  in order to obtain values on the demogrpahic profile of ridings on election years. As of now, I focused on the population's age, but I will extend this work to other demographic variables that are available at the level of federal ridings (e.g., the unemployment rate, the number of immigrants, etc.).
+
+But before we start matching the censuses with parliamentary data, we need to address one important challenge: representation orders have changed since the early 1990s. In other words, there has been redistricting. 
 
 - The 1993 election used the 1987 representation order. There were 295 seats in the House of Commons.
-- The 1997 and 2000 elections used the 1996 representation order. There were 301 seats.
-- The 2004, 2006, 2008 and 2011 elections used the 2003 representation order. There were 308 seats.
-- The 2015 election used the 2013 representation order. There are now 338 seats.
+- The 1997 and 2000 elections used the 1996 representation order. There were 301 seats in the House.
+- The 2004, 2006, 2008 and 2011 elections used the 2003 representation order. There were 308 seats in the House.
+- The 2015 election used the 2013 representation order. There are now 338 seats in the House.
 
-Census data are available for the representation orders that come before and after each census. For example, the 1996 census data are provided for 1987 electoral ridings and the 1996 electoral ridings. This is useful, because we can do the imputation for each election year with its true representation order. For example, the 2000 election came between the 1996 and 2001 censuses. We will use these two censuses to find the population values in 2000. Moreover, this election was run under the _1996 r.o._, so we will use the 1996 and 2000 census data that are organized along the _1996 ridings_. On the contrary, we will match the 1996 election data with the 1996 census data under the _1987 r.o._, because this was the representation order in the 1996 election.
+Census data are available for the representation orders that come before and after each census. For example, the 1996 census data are provided for the 1987 and 1996 representation orders. This is useful, because we can use different pairs of censuses to interpolate demographics in different election years. For example, the 2000 election was run under the _1996 r.o._ and falls between the 1996 and 2001 censuses. We will use the _1996 and 2001 censuses at the level of the 1996 r.o._ to find the demographic profile in 2000. In the same way, we will match the 1996 election data with the _1996 census data_ under the _1987 r.o._, because this was the representation order in the 1996 election.
 
-Some info on representation orders:
+I used the following resources to learn about federal electoral districts, representation orders, and census and parliamentary data in general:
 
 - [Federal electoral districts codes](https://www.elections.ca/content.aspx?section=res&dir=cir/list&document=index338&lang=e)
 - [Election Modelling by Byron Weber Becker](http://election-modelling.ca/rawdata/bycandidate/)
@@ -45,15 +47,15 @@ Some info on representation orders:
 - [RO 2003](https://www.elections.ca/content.aspx?section=res&dir=cir/list&document=index&lang=e#list)
 - [Boundaries](https://open.canada.ca/data/en/dataset?q=%22Federal+Electoral+Districts+of+Canada%22&collection=geogratis&sort=&page=1)
 
-In what follows, we will 
+In what follows, we will:
 
-1) Recode each census dataset (using the right representation order). In some instance, we will need to recode the same census twice, under two different representation orders (this is the case in 1996, 2001 and 2011) because different r.o. will be used for different parliaments. 
+1) Recode each census dataset. In some instances, we will need to recode the same census twice, under two different representation orders (this is the case in 1996, 2001 and 2011). 
 2) Merge censuses together by representation order. 
-3) Impute demographic values for the years that fall in-between census years. 
-4) Clean-up the Parliament data, which contains info on MPs elected in the House, their riding, party, gender, etc. 
-5) Finaly, we will merge the demographics data with the parliament data. 
+3) Interpolate demographic values for election years that fall in-between census years. 
+4) Clean-up the parliamentary data, which contain info on MPs elected in the House, their riding, party, gender, etc. 
+5) Finally, we will merge the (interpolated) demographics data with the parliamentary data. 
 
-There is a LOT of code so I recommend hiding all code (use the button at the top of this page), then showing one chunk at a time as you read this post. You will need these packages to follow along: 
+There is a LOT of code so I recommend hiding all code (you can use the button at the top of this page), then showing one chunk at a time as you read this post. You will need these packages to follow along: 
 
 ```{r}
 library(tidyverse)
@@ -63,9 +65,9 @@ library(fuzzyjoin) # i'm not even sure I ended up using it, but made a few attem
 
 ### 1) Recoding Censuses by Representation Order
 
-I found the raw census datasets on the [website of Statistics Canada](https://www12.statcan.gc.ca/datasets/index-eng.cfm?Temporal=2016). Selecting "Federal electoral distric" under the "Geography" tab, you will see which census data products are available at the level of ridings. For now, I got the "Age and sex" topic and downloaded every census file available. The older files are available in a weird format (Beyond 20/20). Beyond 20/20 can be used on Windows. I am a Mac user, but opened the files on a Windows machine, then saved them in .csv. If you don't want to go through the hassle, I've made the .csv files available in the [Github repo](https://github.com/florencevdubois/florencevdubois.github.io) for this website.
+I found the raw census datasets on the [Statistics Canada wesbsite](https://www12.statcan.gc.ca/datasets/index-eng.cfm?Temporal=2016). Selecting "Federal electoral district" under the "Geography" tab, you will see which census data products are available at the level of ridings. For now, I got the "Age and sex" topic and downloaded every census file available. The older files are available in a weird format (Beyond 20/20). Beyond 20/20 is a software available on Windows. I am a Mac user, but I opened the files on a Windows machine, then saved them in .csv. If you don't want to go through the hassle, I've made the .csv files available in the [Github repo](https://github.com/florencevdubois/florencevdubois.github.io) for this website.
 
-I will not be walking you through each dataset recode, but basically we start by reshaping the data from wide to long in order to get an observation for each riding/age combination (for e.g. Rosemont 0 yr old, Rosemont 1 yr old, Rosemont 2yrs old, etc.) This tells us how many people of every age are in each riding. Then, we'll clean-up the names of ridings (remove special characters, etc.) This is where I had to do the most back-and-forth, because some census years used different spellings for the same riding (double dashes instead of single ones, for e.g.), so in the end I needed to change some spellings manually. It's a good thing I had some knowledge about Canadian federal ridings ;)
+I will not be walking you through each dataset recode because the steps are always the same. But basically, we start by reshaping the data from wide to long in order to get an observation for each riding/age combination (for e.g. Rosemont 0 yr old, Rosemont 1 yr old, Rosemont 2yrs old, etc.) This tells us how many people of every age are in each riding. Then, we clean-up the names of ridings (remove special characters, etc.) This is where I had to do the most back-and-forth, because some censuses used different spellings for the same riding (double dashes instead of single dashes, for e.g.), so in the end I needed to correct some spellings manually. It's a good thing I had some knowledge about Canadian federal elections ;)
 
 #### 1991 census (1987 Representation order) 
 
@@ -74,11 +76,11 @@ I will not be walking you through each dataset recode, but basically we start by
 d91 <- read.csv("documentation/data/input/1991census_1987order.csv", sep = ",")
 
 d91_clean <- d91 %>% 
-  rename(geo = Géographie,
+  rename(geo = Géographie, # just choosing more basic variable names
          sex = Sexe..3.) %>% 
-  filter(str_detect(geo, "[:alpha:]"),
-         str_detect(sex, "Total"),
-         !str_detect(geo, "Newfoundland | Terre-Neuve"),
+  filter(str_detect(geo, "[:alpha:]"), # we are keeping observations with names, because those without names are census subdivisions
+         str_detect(sex, "Total"), # we only keep the total values for sex -- we do not need to know the values for men and women separately
+         !str_detect(geo, "Newfoundland | Terre-Neuve"), # removing observations that are the provinces 
          !str_detect(geo, "Prince Edward Island | Île-du-Prince-Édouard"),
          !str_detect(geo, "Nova Scotia | Nouvelle-Écosse"),
          !str_detect(geo, "New Brunswick | Nouveau-Brunswick"),
@@ -90,54 +92,60 @@ d91_clean <- d91 %>%
          !str_detect(geo, "British Columbia | Colombie-Britannique"),
          !str_detect(geo, "Yukon Territory"),
          !str_detect(geo, "Northwest Territories"),
-         !str_detect(geo, "Canada \\(00\\)")) %>% 
-  gather(age, value, Total...Groupes.d.âge:X90.et.plus) %>% 
-  filter(!str_detect(age, "Total")) %>% 
-  mutate(age = str_remove(age, "X")) %>% 
-  dplyr::select(geo, age, value)
+         !str_detect(geo, "Canada \\(00\\)")) %>% # removing the Canada observation 
+  gather(age, value, Total...Groupes.d.âge:X90.et.plus) %>% # transforming from wide to long
+  filter(!str_detect(age, "Total")) %>% # removing observations that are "age group totals"
+  mutate(age = str_remove(age, "X")) %>% # removing the "X" in front for each age category
+  dplyr::select(geo, age, value) # keeping the 3 variables of interest -- we now have a value (obs.) for each electoral district and age category
 
-table(d91_clean$age)
+table(d91_clean$age) # just looking through the age variable to check what's remianing
 
-d91_clean <- d91_clean %>%
-  mutate(age = ifelse(age == "Moins.de.1", 0, age),
+d91_clean <- d91_clean %>% # people aged less than 1 year are identified as "less than one year" and people aged more than 90 are categorized as "more than 90"
+  mutate(age = ifelse(age == "Moins.de.1", 0, age), # recoding these two, so that "< 1 year" = "0" and "> 90" = "90"
          age = ifelse(age == "90.et.plus", 90, age)) %>% 
-  filter(!str_detect(age, "\\."))
+  filter(!str_detect(age, "\\.")) # age categories with periods in them correspond to age groups -- we don't want them, we only want single ages (except for the 90+ age group)
+
+table(d91_clean$age) # seems pretty good
+class(d91_clean$age) # I have a feeling this variable is not numeric, because I just cleaned up words in it
+
+d91_clean <- d91_clean %>% 
+  mutate(age = as.numeric(age)) # transforming it to numeric
 
 table(d91_clean$age)
 class(d91_clean$age)
 
 d91_clean <- d91_clean %>% 
-  mutate(age = as.numeric(age))
+  mutate(census = 1991, # adding a variable telling us which census it is
+         ro = 1987) # adding a variable telling is which representation it is (I removed it later, turns out I did not need it)
 
-table(d91_clean$age)
-class(d91_clean$age)
-
+# Here's an important step. The "geo" variable has the names of district _and_ their numbers (in parentheses). 
+# I want to keep these two pieces of information, but in two different variables, because I may need one of the other
+# for merging purposes later on. I will therefore split this variable into two (dist_name and dist_nb), then
+# clean them up (especially district names).
 d91_clean <- d91_clean %>% 
-  mutate(census = 1991,
-         ro = 1987)
-
-d91_clean <- d91_clean %>% 
-  mutate(dist_name = str_remove_all(geo, "[0-9]+"),
-         dist_name = str_remove_all(dist_name, "\\(\\)"),
-         dist_name = str_remove_all(dist_name, "\\([^()]+\\)"),
-         dist_nb = str_extract_all(geo, "\\([^()]+\\)")) %>% 
-  unnest(dist_nb) %>% 
-  filter(str_detect(dist_nb, "-", negate = TRUE),
-         str_detect(dist_nb, "[:alpha:]", negate = TRUE)) %>% 
-  mutate(dist_nb = str_extract_all(dist_nb, "(?<=\\().+?(?=\\))")) %>% 
-  unnest(dist_nb) %>% 
+  mutate(dist_name = str_remove_all(geo, "[0-9]+"), # creating the "dist_name" variable by removing numbers from the "geo" variable
+         dist_name = str_remove_all(dist_name, "\\(\\)"), # removing the empty parentheses
+         dist_name = str_remove_all(dist_name, "\\([^()]+\\)"), # there is still information in parentheses (the district names' translation), we want to get rid of that
+         dist_nb = str_extract_all(geo, "\\([^()]+\\)")) %>% # creating the "dist_nb" variable by extracting what's in parentheses from the "geo" variable (I could not only extract digits because there are other digits, which have nothing to do with the district numbers)
+  unnest(dist_nb) %>% # separating the information we extracted from parentheses
+  filter(str_detect(dist_nb, "-", negate = TRUE), 
+         str_detect(dist_nb, "[:alpha:]", negate = TRUE)) %>% # remove observations where the district number is not only a number
+  mutate(dist_nb = str_extract_all(dist_nb, "(?<=\\().+?(?=\\))")) %>% # again, extract the numbers from their parenteses
+  unnest(dist_nb) %>% # I don't think this line and the next are necessary in 1991, but in other years it is 
   filter(str_detect(dist_nb, " ", negate = TRUE)) %>% 
-  mutate(dist_name = str_replace_all(dist_name, " - ", "-"),
+  mutate(dist_name = str_replace_all(dist_name, " - ", "-"), # the next 5 lines are to make sure that district names have the same spelling (or almost) in every census recode
          dist_name = str_replace_all(dist_name, " -", "-"),
-         dist_name = str_replace_all(dist_name, "- ", "-"),
+         dist_name = str_replace_all(dist_name, "- ", "-"), # this could probably be done in a more tidy way
          dist_name = str_replace_all(dist_name, "--", "-"),
          dist_name = str_trim(dist_name, side = "both"),
-         dist_name = ifelse(dist_name == "Timiskaming", "Timiskaming-French River", dist_name)) %>% # Timiskaming is called Timiskaming French River in 1996
-  select(-geo, -ro) 
+         dist_name = ifelse(dist_name == "Timiskaming", "Timiskaming-French River", dist_name)) %>% # Timiskaming is called Timiskaming French River in the 1996 census (first back-and-forth!)
+  select(-geo, -ro) # removing unecessary variables -- we want every data frames to have the same variables
 
-length(unique(d91_clean$dist_nb))
-length(unique(d91_clean$dist_name))
+length(unique(d91_clean$dist_nb)) # just making sure we have 295 seats
+length(unique(d91_clean$dist_name)) # all good
 ```
+
+After having done the first one, most of the work is done, but we have to pay attention to at least one thing: the way other raw datasets are organized. Statistics Canada did not only change the data formats, they also changed the names of variables, how district names and number were compiled, etc. So we won't always to able to run _exactly_ the same code --- a few changes will be necessary here and there.
 
 #### 1996 census (1987 Representation order)
 
@@ -716,23 +724,23 @@ length(unique(d16_clean$dist_nb))
 
 ### 2) Merging Censuses Together by Representation Order
 
-Here, we will merge dataframes from the same representation orders. For example, we need to merge the 1991 and 1996 census that use both the 1987 r.o. in order to be able (later) to make the value imputation for 1992-1993-1994-1995, which all used the 1987 r.o. At this step, there was, yet again, some spelling differences. This made my head want to explode, but I managed to reach the expected result !
+Here, we will merge censuses that use the same representation orders. For example, we need to merge the 1991 and 1996 census that use both the 1987 r.o. in order to be able (later) to interpolate age breakdowns in 1993, an election that was run under the 1987 r.o. At this step, there were (yet again) some spelling differences in district names. This made my head want to explode, but I managed to reach the expected result !
 
 #### Merge 1991 census (1987 Representation order) with 1996 census (1987 Representation order) to map with _1993 parliament data._
 ```{r match ro1987}
 
-d91_clean <- d91_clean %>% 
+d91_clean <- d91_clean %>% # we want to have one observation per electoral district, with variables for each age category
   spread(age, value)
 d96_clean <- d96_clean %>% 
   spread(age, value)
 
-ro1987 <- rbind(d91_clean, d96_clean) %>% 
-  gather(age, value, `0`:`90`) %>% 
-  spread(census, value) 
+ro1987 <- rbind(d91_clean, d96_clean) %>% # we then bind the 2 dataframes (vertically, one on top of the other)
+  gather(age, value, `0`:`90`) %>% # again, we gather the age variables, now we have one observation for each district-census-age combination (long format)
+  spread(census, value) # finally, we come back to a wide format by spreading the values for each age category
 
-length(unique(ro1987$dist_nb))
+length(unique(ro1987$dist_nb)) # making sure we have 295 seats
 length(unique(ro1987$dist_name))
-check <- ro1987 %>% 
+check <- ro1987 %>% # making sure the 2 census years are complete
   filter(is.na(`1991`) == TRUE |
            is.na(`1996`) == TRUE) # all good
 
@@ -745,16 +753,16 @@ check <- ro1987 %>%
 d96_2_clean <- d96_2_clean %>% 
   spread(age, value)
 
-# I have to merge 90+ yo categories because previous census does not have 90-100 y.o.
-# it creates problems when merging
+# I have to merge 90+ yo categories because previous censuses do not have 90-100 y.o.
+# it creates problems when binding
 d01_clean <- d01_clean %>% 
   spread(age, value) %>% 
   unnest(dist_nb) %>%  # dist_nb was a list
   dplyr::group_by(dist_nb) %>% 
-  mutate(`90+` = `90` + `91` + `92` +`93` +`94` +`95` +`96` +`97` +`98` +`99` +`100`) %>% 
+  mutate(`90+` = `90` + `91` + `92` +`93` +`94` +`95` +`96` +`97` +`98` +`99` +`100`) %>% # making a sum of values in the 90-100 age categories 
   ungroup() %>% 
   select(-`90`, -`91`, -`92`, -`93`, -`94`,
-         -`95`, -`96`, -`97`, -`98`, -`99`, -`100`) %>% 
+         -`95`, -`96`, -`97`, -`98`, -`99`, -`100`) %>% # removing the extra variables
   rename(`90` = `90+`) # ok, all set
 
 ro1996 <- rbind(d96_2_clean, d01_clean) %>% 
@@ -766,7 +774,7 @@ check <- ro1996 %>%
   filter(is.na(`1996`) == TRUE |
            is.na(`2001`) == TRUE)
 
-# Nunavut is 61001 in 1996 and 62001 in 2001. I will merge them.
+# Nunavut is 61001 in 1996 and 62001 in 2001. Merging them.
 ro1996 <- ro1996 %>% 
   gather(year, value, `1996`:`2001`) %>% 
   spread(age, value) %>% 
@@ -779,7 +787,7 @@ check <- ro1996 %>%
   filter(is.na(`1996`) == TRUE |
            is.na(`2001`) == TRUE) 
 
-list <- check %>% distinct(dist_name, dist_nb)
+list <- check %>% distinct(dist_name, dist_nb) # we have a problem, let's check the district names
 
 # Fix different spellings
 ro1996 <- ro1996 %>% 
@@ -787,7 +795,7 @@ ro1996 <- ro1996 %>%
   unnest(dist_nb) %>%
   drop_na() %>%
   dplyr::group_by(dist_nb, age) %>%
-  mutate(new_name = dist_name[year == 1996]) %>% # recode districts with different names to their 1996 names -- this does not mean they're different districts (they have the same nb), it is because Statistics Canada used different names for the same representation order. This is going to cause some trouble later, but we will fix it.
+  mutate(new_name = dist_name[year == 1996]) %>% # making sure all districts use the 1996 names -- StatCan changed some names even though the r.o. did not change, but it does not mean that the districts changed (they have the same number). This is going to cause some trouble later, but we will fix it.
   dplyr::ungroup() %>%
   mutate(dist_name = new_name) %>% 
   select(-new_name) %>%
@@ -798,7 +806,7 @@ check <- ro1996 %>%
            is.na(`2001`) == TRUE)
 
 length(unique(ro1996$dist_name))
-length(unique(ro1996$dist_nb))
+length(unique(ro1996$dist_nb)) # all set
 
 ```
 
@@ -877,7 +885,7 @@ ro2013 <- ro2013 %>%
   gather(year, value, `2011`:`2016`) %>% 
   drop_na() %>% 
   dplyr::group_by(dist_nb, age) %>% 
-  mutate(new_name = dist_name[year == 2011]) %>% #recode districts with different names, use 2011 names
+  mutate(new_name = dist_name[year == 2011]) %>% # recode districts with different names, use 2011 names
   dplyr::ungroup() %>% 
   mutate(dist_name = new_name) %>% 
   select(-new_name) %>% 
@@ -891,9 +899,9 @@ check <- ro2013 %>%
 
 ```
 
-### 3) Imputation of Values for Years In-Between Censuses
+### 3) Interpolation of Values for Years In-Between Censuses
 
-Election years sometimes (often) fall in-between censuses. We will interpolate the number of people in each age group to years between censuses, so that we have 'truer' values for election years. We will do this for each of the five datasets we have merged in the previous step. 
+Election years sometimes (often) fall in-between censuses. We will interpolate the number of people in each age group to years between censuses, so that we have 'truer' values for election years. We will do this for each of the five datasets we merged in the previous step. 
 
 First, we need to reshape the data from long to wide.
 
@@ -923,10 +931,10 @@ ro2013_imputation <- ro2013 %>%
   mutate(year = as.integer(year)) %>% 
   mutate(ro = "ro2013")
 
-imputation_d <- rbind(ro1987_imputation, ro1996_imputation, ro2003_imputation, ro2003_2_imputation, ro2013_imputation)
+imputation_d <- rbind(ro1987_imputation, ro1996_imputation, ro2003_imputation, ro2003_2_imputation, ro2013_imputation) # creating one big dataframe
 ```
 
-Then, we make the value imputation. This is a function I found online. It seems to work well, but suggestions as to how to do this otherwise would be more than welcome (is there a built-in function or package achieving this with fewer lines of code?).
+Then, we make the value imputation. This is a function I found online. It seems to work well, but suggestions as to how to do this otherwise would be more than welcome (is there a built-in function or package achieving this with fewer lines of code?)
 
 ```{r}
 expand_data <- function(x) {
@@ -967,7 +975,7 @@ table(imputation_data2$dist_nb, imputation_data2$ro)
 table(imputation_data2$age, imputation_data2$year)
 ```
 
-What to do with post-2016? We cannot make value imputation for these years because they come after the last census. The next-best option would be to use the 2016 values for every year after 2016, but we would be loosing some variation in the demography.
+What to do with post-2016? We cannot make interpolate values for these years because they come after the last census. The next-best option would be to use the 2016 values for every year after 2016, but we would be loosing some variation in the demography.
 
 ### 4) Cleaning-Up the Parliament (MP) Data
 
