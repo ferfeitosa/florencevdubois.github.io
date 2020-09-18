@@ -408,7 +408,7 @@ $(document).ready(function () {
 <p>There is a LOT of code so I recommend hiding all code (you can use the button at the top of this page), then showing one chunk at a time as you read this post. You will need these packages to follow along:</p>
 <pre class="r"><code>library(tidyverse)
 library(lubridate)
-library(fuzzyjoin) # i&#39;m not even sure I ended up using it, but made a few attempts with this package.</code></pre>
+library(fuzzyjoin)  # i&#39;m not even sure I ended up using it, but made a few attempts with this package.</code></pre>
 </div>
 <div id="recoding-censuses-by-representation-order" class="section level3">
 <h3>1) Recoding Censuses by Representation Order</h3>
@@ -419,11 +419,11 @@ library(fuzzyjoin) # i&#39;m not even sure I ended up using it, but made a few a
 <pre class="r"><code>d91 &lt;- read.csv(&quot;documentation/data/input/1991census_1987order.csv&quot;, sep = &quot;,&quot;)
 
 d91_clean &lt;- d91 %&gt;% 
-  rename(geo = Géographie, # just choosing more basic variable names
+  rename(geo = Géographie, # choosing more basic variable names
          sex = Sexe..3.) %&gt;% 
-  filter(str_detect(geo, &quot;[:alpha:]&quot;), # we are keeping observations with names, because those without names are census subdivisions
-         str_detect(sex, &quot;Total&quot;), # we only keep the total values for sex -- we do not need to know the values for men and women separately
-         !str_detect(geo, &quot;Newfoundland | Terre-Neuve&quot;), # removing observations that are the provinces 
+  filter(str_detect(geo, &quot;[:alpha:]&quot;), # keeping observations with names (without are census subdivisions)
+         str_detect(sex, &quot;Total&quot;), # keeping total values for sex -- we don&#39;t need men and women 
+         !str_detect(geo, &quot;Newfoundland | Terre-Neuve&quot;), # removing obs that are the provinces 
          !str_detect(geo, &quot;Prince Edward Island | Île-du-Prince-Édouard&quot;),
          !str_detect(geo, &quot;Nova Scotia | Nouvelle-Écosse&quot;),
          !str_detect(geo, &quot;New Brunswick | Nouveau-Brunswick&quot;),
@@ -435,21 +435,27 @@ d91_clean &lt;- d91 %&gt;%
          !str_detect(geo, &quot;British Columbia | Colombie-Britannique&quot;),
          !str_detect(geo, &quot;Yukon Territory&quot;),
          !str_detect(geo, &quot;Northwest Territories&quot;),
-         !str_detect(geo, &quot;Canada \\(00\\)&quot;)) %&gt;% # removing the Canada observation 
-  gather(age, value, Total...Groupes.d.âge:X90.et.plus) %&gt;% # transforming from wide to long
-  filter(!str_detect(age, &quot;Total&quot;)) %&gt;% # removing observations that are &quot;age group totals&quot;
-  mutate(age = str_remove(age, &quot;X&quot;)) %&gt;% # removing the &quot;X&quot; in front for each age category
-  dplyr::select(geo, age, value) # keeping the 3 variables of interest -- we now have a value (obs.) for each electoral district and age category
+         !str_detect(geo, &quot;Canada \\(00\\)&quot;)) %&gt;% # removing the Canada obs 
+  gather(age, value, Total...Groupes.d.âge:X90.et.plus) %&gt;% # from wide to long
+  filter(!str_detect(age, &quot;Total&quot;)) %&gt;% # removing obs that are &quot;age group totals&quot;
+  mutate(age = str_remove(age, &quot;X&quot;)) %&gt;% # removing &quot;X&quot; in front of age categories
+  dplyr::select(geo, age, value) # keeping the 3 variables of interest 
+# we now have a value (obs.) for each electoral district and age category
 
-table(d91_clean$age) # just looking through the age variable to check what&#39;s remianing
+# just looking through the age variable to check what&#39;s remianing
+table(d91_clean$age) 
 
-d91_clean &lt;- d91_clean %&gt;% # people aged less than 1 year are identified as &quot;less than one year&quot; and people aged more than 90 are categorized as &quot;more than 90&quot;
-  mutate(age = ifelse(age == &quot;Moins.de.1&quot;, 0, age), # recoding these two, so that &quot;&lt; 1 year&quot; = &quot;0&quot; and &quot;&gt; 90&quot; = &quot;90&quot;
-         age = ifelse(age == &quot;90.et.plus&quot;, 90, age)) %&gt;% 
-  filter(!str_detect(age, &quot;\\.&quot;)) # age categories with periods in them correspond to age groups -- we don&#39;t want them, we only want single ages (except for the 90+ age group)
+# people &lt;1 y.o. are identified as &quot;less than one year&quot; and people &gt;90 y.o. 
+# are categorized as &quot;more than 90&quot;
+
+d91_clean &lt;- d91_clean %&gt;% 
+  mutate(age = ifelse(age == &quot;Moins.de.1&quot;, 0, age), # recoding these two
+         age = ifelse(age == &quot;90.et.plus&quot;, 90, age)) %&gt;% # &quot;&lt; 1 year&quot; = &quot;0&quot; and &quot;&gt; 90&quot; = &quot;90&quot;
+  filter(!str_detect(age, &quot;\\.&quot;)) # age categories with periods in them correspond to age groups
+# we don&#39;t want them, we only want single ages (except for the 90+ age group)
 
 table(d91_clean$age) # seems pretty good
-class(d91_clean$age) # I have a feeling this variable is not numeric, because I just cleaned up words in it
+class(d91_clean$age) # I have a feeling this variable is not numeric
 
 d91_clean &lt;- d91_clean %&gt;% 
   mutate(age = as.numeric(age)) # transforming it to numeric
@@ -459,30 +465,42 @@ class(d91_clean$age)
 
 d91_clean &lt;- d91_clean %&gt;% 
   mutate(census = 1991, # adding a variable telling us which census it is
-         ro = 1987) # adding a variable telling is which representation it is (I removed it later, turns out I did not need it)
+         ro = 1987) # adding a variable for the R.O. (I removed it later, turns out I did not need it)
 
-# Here&#39;s an important step. The &quot;geo&quot; variable has the names of district _and_ their numbers (in parentheses). 
-# I want to keep these two pieces of information, but in two different variables, because I may need one of the other
-# for merging purposes later on. I will therefore split this variable into two (dist_name and dist_nb), then
-# clean them up (especially district names).
+# Here&#39;s an important step. The &quot;geo&quot; variable has the names of district _and_ their numbers 
+# (in parentheses). I want to keep these two pieces of information, but in two different 
+# variables, because I may need one of the other for merging purposes later on. I will 
+# therefore split this variable into two (dist_name and dist_nb), then clean them up 
+# (especially district names).
+
 d91_clean &lt;- d91_clean %&gt;% 
-  mutate(dist_name = str_remove_all(geo, &quot;[0-9]+&quot;), # creating the &quot;dist_name&quot; variable by removing numbers from the &quot;geo&quot; variable
+  mutate(dist_name = str_remove_all(geo, &quot;[0-9]+&quot;), # removing digits from geo to create &quot;dist_name&quot; 
          dist_name = str_remove_all(dist_name, &quot;\\(\\)&quot;), # removing the empty parentheses
-         dist_name = str_remove_all(dist_name, &quot;\\([^()]+\\)&quot;), # there is still information in parentheses (the district names&#39; translation), we want to get rid of that
-         dist_nb = str_extract_all(geo, &quot;\\([^()]+\\)&quot;)) %&gt;% # creating the &quot;dist_nb&quot; variable by extracting what&#39;s in parentheses from the &quot;geo&quot; variable (I could not only extract digits because there are other digits, which have nothing to do with the district numbers)
+         # there is still information in parentheses (the district names&#39; translation), we want to 
+         # get rid of that
+         dist_name = str_remove_all(dist_name, &quot;\\([^()]+\\)&quot;), 
+         # creating the &quot;dist_nb&quot; variable by extracting what&#39;s in parentheses from the &quot;geo&quot; variable 
+         # (I could not only extract digits because there are other digits, which have nothing to do 
+         #with the district numbers)
+         dist_nb = str_extract_all(geo, &quot;\\([^()]+\\)&quot;)) %&gt;% 
   unnest(dist_nb) %&gt;% # separating the information we extracted from parentheses
   filter(str_detect(dist_nb, &quot;-&quot;, negate = TRUE), 
-         str_detect(dist_nb, &quot;[:alpha:]&quot;, negate = TRUE)) %&gt;% # remove observations where the district number is not only a number
-  mutate(dist_nb = str_extract_all(dist_nb, &quot;(?&lt;=\\().+?(?=\\))&quot;)) %&gt;% # again, extract the numbers from their parenteses
-  unnest(dist_nb) %&gt;% # I don&#39;t think this line and the next are necessary in 1991, but in other years it is 
+         # remove obs where the district nb is not only a number
+         str_detect(dist_nb, &quot;[:alpha:]&quot;, negate = TRUE)) %&gt;% 
+  # again, extract digits from their parenteses
+  mutate(dist_nb = str_extract_all(dist_nb, &quot;(?&lt;=\\().+?(?=\\))&quot;)) %&gt;% 
+  # I don&#39;t think the next line and the next are necessary in 1991, but in other years it is
+  unnest(dist_nb) %&gt;%  
   filter(str_detect(dist_nb, &quot; &quot;, negate = TRUE)) %&gt;% 
-  mutate(dist_name = str_replace_all(dist_name, &quot; - &quot;, &quot;-&quot;), # the next 5 lines are to make sure that district names have the same spelling (or almost) in every census recode
+  mutate(dist_name = str_replace_all(dist_name, &quot; - &quot;, &quot;-&quot;), 
+         # the next lines make sure that district names have the same spelling in every census recode
          dist_name = str_replace_all(dist_name, &quot; -&quot;, &quot;-&quot;),
-         dist_name = str_replace_all(dist_name, &quot;- &quot;, &quot;-&quot;), # this could probably be done in a more tidy way
+         dist_name = str_replace_all(dist_name, &quot;- &quot;, &quot;-&quot;), # this could probably be more tidy 
          dist_name = str_replace_all(dist_name, &quot;--&quot;, &quot;-&quot;),
          dist_name = str_trim(dist_name, side = &quot;both&quot;),
-         dist_name = ifelse(dist_name == &quot;Timiskaming&quot;, &quot;Timiskaming-French River&quot;, dist_name)) %&gt;% # Timiskaming is called Timiskaming French River in the 1996 census (first back-and-forth!)
-  select(-geo, -ro) # removing unecessary variables -- we want every data frames to have the same variables
+          # Timiskaming is called Timiskaming French River in the 1996 census (first back-and-forth!)
+         dist_name = ifelse(dist_name == &quot;Timiskaming&quot;, &quot;Timiskaming-French River&quot;, dist_name)) %&gt;% 
+  select(-geo, -ro) # we want every data frames to have the same variables
 
 length(unique(d91_clean$dist_nb)) # just making sure we have 295 seats
 length(unique(d91_clean$dist_name)) # all good</code></pre>
@@ -492,66 +510,42 @@ length(unique(d91_clean$dist_name)) # all good</code></pre>
 <h4>1996 census (1987 Representation order)</h4>
 <pre class="r"><code>d96 &lt;- read.csv(&quot;documentation/data/input/1996census_1987order.csv&quot;, sep = &quot;,&quot;)
 
-d96_clean &lt;- d96 %&gt;% 
-  rename(geo = Géographie,
-         sex = Sexe..3.) %&gt;% 
-  filter(str_detect(geo, &quot;[:alpha:]&quot;),
-         str_detect(sex, &quot;Total&quot;),
-         !str_detect(geo, &quot;Newfoundland | Terre-Neuve&quot;),
-         !str_detect(geo, &quot;Prince Edward Island | Île-du-Prince-Édouard&quot;),
-         !str_detect(geo, &quot;Nova Scotia | Nouvelle-Écosse&quot;),
-         !str_detect(geo, &quot;New Brunswick | Nouveau-Brunswick&quot;),
-         !str_detect(geo, &quot;Quebec | Québec&quot;),
-         !str_detect(geo, &quot;Ontario \\(35\\)&quot;),
-         !str_detect(geo, &quot;Saskatchewan&quot;),
-         !str_detect(geo, &quot;Manitoba&quot;),
-         !str_detect(geo, &quot;Alberta&quot;),
-         !str_detect(geo, &quot;British Columbia | Colombie-Britannique&quot;),
-         !str_detect(geo, &quot;Yukon Territory&quot;),
-         !str_detect(geo, &quot;Northwest Territories&quot;),
-         !str_detect(geo, &quot;Canada \\(00\\)&quot;)) %&gt;% 
-  gather(age, value, Total...Âge:X90.) %&gt;% 
-  filter(!str_detect(age, &quot;Total&quot;)) %&gt;% 
-  mutate(age = str_remove(age, &quot;X&quot;)) %&gt;% 
-  dplyr::select(geo, age, value)
+d96_clean &lt;- d96 %&gt;% rename(geo = Géographie, sex = Sexe..3.) %&gt;% filter(str_detect(geo, 
+    &quot;[:alpha:]&quot;), str_detect(sex, &quot;Total&quot;), !str_detect(geo, &quot;Newfoundland | Terre-Neuve&quot;), 
+    !str_detect(geo, &quot;Prince Edward Island | Île-du-Prince-Édouard&quot;), !str_detect(geo, 
+        &quot;Nova Scotia | Nouvelle-Écosse&quot;), !str_detect(geo, &quot;New Brunswick | Nouveau-Brunswick&quot;), 
+    !str_detect(geo, &quot;Quebec | Québec&quot;), !str_detect(geo, &quot;Ontario \\(35\\)&quot;), !str_detect(geo, 
+        &quot;Saskatchewan&quot;), !str_detect(geo, &quot;Manitoba&quot;), !str_detect(geo, &quot;Alberta&quot;), 
+    !str_detect(geo, &quot;British Columbia | Colombie-Britannique&quot;), !str_detect(geo, 
+        &quot;Yukon Territory&quot;), !str_detect(geo, &quot;Northwest Territories&quot;), !str_detect(geo, 
+        &quot;Canada \\(00\\)&quot;)) %&gt;% gather(age, value, Total...Âge:X90.) %&gt;% filter(!str_detect(age, 
+    &quot;Total&quot;)) %&gt;% mutate(age = str_remove(age, &quot;X&quot;)) %&gt;% dplyr::select(geo, age, 
+    value)
 
 table(d96_clean$age)
 
-d96_clean &lt;- d96_clean %&gt;%
-  mutate(age = ifelse(age == &quot;moins.de.1&quot;, 0, age),
-         age = ifelse(age == &quot;90.&quot;, 90, age)) %&gt;% 
-  filter(!str_detect(age, &quot;\\.&quot;))
+d96_clean &lt;- d96_clean %&gt;% mutate(age = ifelse(age == &quot;moins.de.1&quot;, 0, age), age = ifelse(age == 
+    &quot;90.&quot;, 90, age)) %&gt;% filter(!str_detect(age, &quot;\\.&quot;))
 
 table(d96_clean$age)
 class(d96_clean$age)
 
-d96_clean &lt;- d96_clean %&gt;% 
-  mutate(age = as.numeric(age))
+d96_clean &lt;- d96_clean %&gt;% mutate(age = as.numeric(age))
 
 table(d96_clean$age)
 class(d96_clean$age)
 
-d96_clean &lt;- d96_clean %&gt;% 
-  mutate(census = 1996,
-         ro = 1987)
+d96_clean &lt;- d96_clean %&gt;% mutate(census = 1996, ro = 1987)
 
-d96_clean &lt;- d96_clean %&gt;% 
-  mutate(dist_name = str_remove_all(geo, &quot;[0-9]+&quot;),
-         dist_name = str_remove_all(dist_name, &quot;\\(\\)&quot;),
-         dist_name = str_remove_all(dist_name, &quot;\\([^()]+\\)&quot;),
-         dist_nb = str_extract_all(geo, &quot;\\([^()]+\\)&quot;)) %&gt;% 
-  unnest(dist_nb) %&gt;% 
-  filter(str_detect(dist_nb, &quot;-&quot;, negate = TRUE),
-         str_detect(dist_nb, &quot;[:alpha:]&quot;, negate = TRUE)) %&gt;% 
-  mutate(dist_nb = str_extract_all(dist_nb, &quot;(?&lt;=\\().+?(?=\\))&quot;)) %&gt;% 
-  unnest(dist_nb) %&gt;%
-  filter(str_detect(dist_nb, &quot; &quot;, negate = TRUE)) %&gt;% 
-  mutate(dist_name = str_replace_all(dist_name, &quot; - &quot;, &quot;-&quot;),
-         dist_name = str_replace_all(dist_name, &quot; -&quot;, &quot;-&quot;),
-         dist_name = str_replace_all(dist_name, &quot;- &quot;, &quot;-&quot;),
-         dist_name = str_replace_all(dist_name, &quot;--&quot;, &quot;-&quot;),
-         dist_name = str_trim(dist_name, side = &quot;both&quot;)) %&gt;%
-  select(-geo,-ro)
+d96_clean &lt;- d96_clean %&gt;% mutate(dist_name = str_remove_all(geo, &quot;[0-9]+&quot;), dist_name = str_remove_all(dist_name, 
+    &quot;\\(\\)&quot;), dist_name = str_remove_all(dist_name, &quot;\\([^()]+\\)&quot;), dist_nb = str_extract_all(geo, 
+    &quot;\\([^()]+\\)&quot;)) %&gt;% unnest(dist_nb) %&gt;% filter(str_detect(dist_nb, &quot;-&quot;, negate = TRUE), 
+    str_detect(dist_nb, &quot;[:alpha:]&quot;, negate = TRUE)) %&gt;% mutate(dist_nb = str_extract_all(dist_nb, 
+    &quot;(?&lt;=\\().+?(?=\\))&quot;)) %&gt;% unnest(dist_nb) %&gt;% filter(str_detect(dist_nb, &quot; &quot;, 
+    negate = TRUE)) %&gt;% mutate(dist_name = str_replace_all(dist_name, &quot; - &quot;, &quot;-&quot;), 
+    dist_name = str_replace_all(dist_name, &quot; -&quot;, &quot;-&quot;), dist_name = str_replace_all(dist_name, 
+        &quot;- &quot;, &quot;-&quot;), dist_name = str_replace_all(dist_name, &quot;--&quot;, &quot;-&quot;), dist_name = str_trim(dist_name, 
+        side = &quot;both&quot;)) %&gt;% select(-geo, -ro)
 
 length(unique(d96_clean$dist_nb))
 length(unique(d96_clean$dist_name))</code></pre>
@@ -560,62 +554,41 @@ length(unique(d96_clean$dist_name))</code></pre>
 <h4>1996 census (1996 Representation order)</h4>
 <pre class="r"><code>d96_2 &lt;- read.csv(&quot;documentation/data/input/1996census_1996order.csv&quot;, sep = &quot;,&quot;)
 
-d96_2_clean &lt;- d96_2 %&gt;% 
-  rename(geo = Géographie,
-         sex = Sexe..3.) %&gt;% 
-  filter(str_detect(geo, &quot;[:alpha:]&quot;),
-         str_detect(sex, &quot;Total&quot;),
-         !str_detect(geo, &quot;Newfoundland | Terre-Neuve&quot;),
-         !str_detect(geo, &quot;Prince Edward Island | Île-du-Prince-Édouard&quot;),
-         !str_detect(geo, &quot;Nova Scotia | Nouvelle-Écosse&quot;),
-         !str_detect(geo, &quot;New Brunswick | Nouveau-Brunswick&quot;),
-         !str_detect(geo, &quot;Quebec | Québec&quot;),
-         !str_detect(geo, &quot;Ontario \\(35\\)&quot;),
-         !str_detect(geo, &quot;Saskatchewan&quot;),
-         !str_detect(geo, &quot;Manitoba&quot;),
-         !str_detect(geo, &quot;Alberta&quot;),
-         !str_detect(geo, &quot;British Columbia | Colombie-Britannique&quot;),
-         !str_detect(geo, &quot;Yukon Territory&quot;),
-         !str_detect(geo, &quot;Northwest Territories&quot;),
-         !str_detect(geo, &quot;Canada \\(00\\)&quot;)) %&gt;% 
-  gather(age, value, Total...Âge:X90.) %&gt;% 
-  filter(!str_detect(age, &quot;Total&quot;)) %&gt;% 
-  mutate(age = str_remove(age, &quot;X&quot;)) %&gt;% 
-  dplyr::select(geo, age, value)
+d96_2_clean &lt;- d96_2 %&gt;% rename(geo = Géographie, sex = Sexe..3.) %&gt;% filter(str_detect(geo, 
+    &quot;[:alpha:]&quot;), str_detect(sex, &quot;Total&quot;), !str_detect(geo, &quot;Newfoundland | Terre-Neuve&quot;), 
+    !str_detect(geo, &quot;Prince Edward Island | Île-du-Prince-Édouard&quot;), !str_detect(geo, 
+        &quot;Nova Scotia | Nouvelle-Écosse&quot;), !str_detect(geo, &quot;New Brunswick | Nouveau-Brunswick&quot;), 
+    !str_detect(geo, &quot;Quebec | Québec&quot;), !str_detect(geo, &quot;Ontario \\(35\\)&quot;), !str_detect(geo, 
+        &quot;Saskatchewan&quot;), !str_detect(geo, &quot;Manitoba&quot;), !str_detect(geo, &quot;Alberta&quot;), 
+    !str_detect(geo, &quot;British Columbia | Colombie-Britannique&quot;), !str_detect(geo, 
+        &quot;Yukon Territory&quot;), !str_detect(geo, &quot;Northwest Territories&quot;), !str_detect(geo, 
+        &quot;Canada \\(00\\)&quot;)) %&gt;% gather(age, value, Total...Âge:X90.) %&gt;% filter(!str_detect(age, 
+    &quot;Total&quot;)) %&gt;% mutate(age = str_remove(age, &quot;X&quot;)) %&gt;% dplyr::select(geo, age, 
+    value)
 
 table(d96_2_clean$age)
 
-d96_2_clean &lt;- d96_2_clean %&gt;%
-  mutate(age = ifelse(age == &quot;moins.de.1&quot;, 0, age),
-         age = ifelse(age == &quot;90.&quot;, 90, age)) %&gt;% 
-  filter(!str_detect(age, &quot;\\.&quot;))
+d96_2_clean &lt;- d96_2_clean %&gt;% mutate(age = ifelse(age == &quot;moins.de.1&quot;, 0, age), 
+    age = ifelse(age == &quot;90.&quot;, 90, age)) %&gt;% filter(!str_detect(age, &quot;\\.&quot;))
 
 table(d96_2_clean$age)
 class(d96_2_clean$age)
 
-d96_2_clean &lt;- d96_2_clean %&gt;% 
-  mutate(age = as.numeric(age))
+d96_2_clean &lt;- d96_2_clean %&gt;% mutate(age = as.numeric(age))
 
 table(d96_2_clean$age)
 class(d96_2_clean$age)
 
-d96_2_clean &lt;- d96_2_clean %&gt;% 
-  mutate(census = 1996,
-         ro = 1996)
+d96_2_clean &lt;- d96_2_clean %&gt;% mutate(census = 1996, ro = 1996)
 
-d96_2_clean &lt;- d96_2_clean %&gt;% 
-  mutate(dist_name = str_remove_all(geo, &quot;[0-9]+&quot;),
-         dist_name = str_remove_all(dist_name, &quot;\\(\\)&quot;),
-         dist_nb = str_extract_all(geo, &quot;\\([^()]+\\)&quot;),
-         dist_nb = str_extract_all(dist_nb, &quot;(?&lt;=\\().+?(?=\\))&quot;)) %&gt;% 
-  unnest(dist_nb) %&gt;% 
-  mutate(dist_name = str_replace_all(dist_name, &quot; - &quot;, &quot;-&quot;),
-         dist_name = str_replace_all(dist_name, &quot; -&quot;, &quot;-&quot;),
-         dist_name = str_replace_all(dist_name, &quot;- &quot;, &quot;-&quot;),
-         dist_name = str_replace_all(dist_name, &quot;--&quot;, &quot;-&quot;),
-         dist_name = str_trim(dist_name, side = &quot;both&quot;),
-         dist_name = str_replace_all(dist_name, &quot; / &quot;, &quot;/&quot;)) %&gt;%
-  select(-geo, -ro) 
+d96_2_clean &lt;- d96_2_clean %&gt;% mutate(dist_name = str_remove_all(geo, &quot;[0-9]+&quot;), 
+    dist_name = str_remove_all(dist_name, &quot;\\(\\)&quot;), dist_nb = str_extract_all(geo, 
+        &quot;\\([^()]+\\)&quot;), dist_nb = str_extract_all(dist_nb, &quot;(?&lt;=\\().+?(?=\\))&quot;)) %&gt;% 
+    unnest(dist_nb) %&gt;% mutate(dist_name = str_replace_all(dist_name, &quot; - &quot;, &quot;-&quot;), 
+    dist_name = str_replace_all(dist_name, &quot; -&quot;, &quot;-&quot;), dist_name = str_replace_all(dist_name, 
+        &quot;- &quot;, &quot;-&quot;), dist_name = str_replace_all(dist_name, &quot;--&quot;, &quot;-&quot;), dist_name = str_trim(dist_name, 
+        side = &quot;both&quot;), dist_name = str_replace_all(dist_name, &quot; / &quot;, &quot;/&quot;)) %&gt;% select(-geo, 
+    -ro)
 
 length(unique(d96_2_clean$dist_nb))
 length(unique(d96_2_clean$dist_name))</code></pre>
@@ -625,63 +598,40 @@ length(unique(d96_2_clean$dist_name))</code></pre>
 <pre class="r"><code>d01 &lt;- read.csv(&quot;documentation/data/input/2001census_1996order.csv&quot;, encoding = &quot;latin1&quot;)
 summary(d01)
 
-d01_clean &lt;- d01 %&gt;% 
-  rename(geo = Géographie,
-         sex = `Sexe..3.`) %&gt;% 
-  filter(str_detect(geo, &quot;[:alpha:]&quot;),
-         str_detect(sex, &quot;Total&quot;),
-         !str_detect(geo, &quot;Newfoundland | Terre-Neuve&quot;),
-         !str_detect(geo, &quot;Prince Edward Island | Île-du-Prince-Édouard&quot;),
-         !str_detect(geo, &quot;Nova Scotia | Nouvelle-Écosse&quot;),
-         !str_detect(geo, &quot;New Brunswick - Nouveau-Brunswick \\(13\\)&quot;),
-         !str_detect(geo, &quot;Québec \\(24\\)&quot;),
-         !str_detect(geo, &quot;Ontario \\(35\\)&quot;),
-         !str_detect(geo, &quot;Saskatchewan&quot;),
-         !str_detect(geo, &quot;Manitoba&quot;),
-         !str_detect(geo, &quot;Alberta&quot;),
-         !str_detect(geo, &quot;British Columbia | Colombie-Britannique&quot;),
-         !str_detect(geo, &quot;Yukon Territory&quot;),
-         !str_detect(geo, &quot;Northwest Territories&quot;),
-         !str_detect(geo, &quot;Canada&quot;),
-         !str_detect(geo, &quot;Nunavut \\(62\\)&quot;)) %&gt;% 
-  gather(age, value, `Total...Âge`:`X100.`) %&gt;% 
-  filter(!str_detect(age, &quot;Total&quot;)) %&gt;% 
-  dplyr::select(geo, age, value)
+d01_clean &lt;- d01 %&gt;% rename(geo = Géographie, sex = Sexe..3.) %&gt;% filter(str_detect(geo, 
+    &quot;[:alpha:]&quot;), str_detect(sex, &quot;Total&quot;), !str_detect(geo, &quot;Newfoundland | Terre-Neuve&quot;), 
+    !str_detect(geo, &quot;Prince Edward Island | Île-du-Prince-Édouard&quot;), !str_detect(geo, 
+        &quot;Nova Scotia | Nouvelle-Écosse&quot;), !str_detect(geo, &quot;New Brunswick - Nouveau-Brunswick \\(13\\)&quot;), 
+    !str_detect(geo, &quot;Québec \\(24\\)&quot;), !str_detect(geo, &quot;Ontario \\(35\\)&quot;), !str_detect(geo, 
+        &quot;Saskatchewan&quot;), !str_detect(geo, &quot;Manitoba&quot;), !str_detect(geo, &quot;Alberta&quot;), 
+    !str_detect(geo, &quot;British Columbia | Colombie-Britannique&quot;), !str_detect(geo, 
+        &quot;Yukon Territory&quot;), !str_detect(geo, &quot;Northwest Territories&quot;), !str_detect(geo, 
+        &quot;Canada&quot;), !str_detect(geo, &quot;Nunavut \\(62\\)&quot;)) %&gt;% gather(age, value, Total...Âge:X100.) %&gt;% 
+    filter(!str_detect(age, &quot;Total&quot;)) %&gt;% dplyr::select(geo, age, value)
 
 table(d01_clean$age)
 
-d01_clean &lt;- d01_clean %&gt;%
-  mutate(age = ifelse(age == &quot;Moins.de.1.an&quot;, 0, age),
-         age = ifelse(age == &quot;X100.&quot;, 100, age),
-         age = str_remove_all(age, &quot;X&quot;)) %&gt;% 
-  filter(!str_detect(age, &quot;\\.&quot;))
+d01_clean &lt;- d01_clean %&gt;% mutate(age = ifelse(age == &quot;Moins.de.1.an&quot;, 0, age), age = ifelse(age == 
+    &quot;X100.&quot;, 100, age), age = str_remove_all(age, &quot;X&quot;)) %&gt;% filter(!str_detect(age, 
+    &quot;\\.&quot;))
 
 table(d01_clean$age)
 class(d01_clean$age)
 
-d01_clean &lt;- d01_clean %&gt;% 
-  mutate(age = as.numeric(age))
+d01_clean &lt;- d01_clean %&gt;% mutate(age = as.numeric(age))
 
 table(d01_clean$age)
 class(d01_clean$age)
 
-d01_clean &lt;- d01_clean %&gt;% 
-  mutate(census = 2001,
-         ro = 1996)
+d01_clean &lt;- d01_clean %&gt;% mutate(census = 2001, ro = 1996)
 
-d01_clean &lt;- d01_clean %&gt;% 
-  mutate(dist_name = str_remove_all(geo, &quot;[0-9]+&quot;),
-         dist_name = str_remove_all(dist_name, &quot;\\(\\)&quot;),
-         dist_nb = str_extract_all(geo, &quot;\\([^()]+\\)&quot;),
-         dist_nb = str_extract_all(dist_nb, &quot;(?&lt;=\\().+?(?=\\))&quot;)) %&gt;% 
-  unnest(dist_nb) %&gt;% 
-  mutate(dist_name = str_replace_all(dist_name, &quot; - &quot;, &quot;-&quot;),
-         dist_name = str_replace_all(dist_name, &quot; -&quot;, &quot;-&quot;),
-         dist_name = str_replace_all(dist_name, &quot;- &quot;, &quot;-&quot;),
-         dist_name = str_replace_all(dist_name, &quot;--&quot;, &quot;-&quot;),
-         dist_name = str_trim(dist_name, side = &quot;both&quot;),
-         dist_name = str_replace_all(dist_name, &quot; / &quot;, &quot;/&quot;)) %&gt;%
-  select(-geo, -ro) 
+d01_clean &lt;- d01_clean %&gt;% mutate(dist_name = str_remove_all(geo, &quot;[0-9]+&quot;), dist_name = str_remove_all(dist_name, 
+    &quot;\\(\\)&quot;), dist_nb = str_extract_all(geo, &quot;\\([^()]+\\)&quot;), dist_nb = str_extract_all(dist_nb, 
+    &quot;(?&lt;=\\().+?(?=\\))&quot;)) %&gt;% unnest(dist_nb) %&gt;% mutate(dist_name = str_replace_all(dist_name, 
+    &quot; - &quot;, &quot;-&quot;), dist_name = str_replace_all(dist_name, &quot; -&quot;, &quot;-&quot;), dist_name = str_replace_all(dist_name, 
+    &quot;- &quot;, &quot;-&quot;), dist_name = str_replace_all(dist_name, &quot;--&quot;, &quot;-&quot;), dist_name = str_trim(dist_name, 
+    side = &quot;both&quot;), dist_name = str_replace_all(dist_name, &quot; / &quot;, &quot;/&quot;)) %&gt;% select(-geo, 
+    -ro)
 
 length(unique(d01_clean$dist_nb))
 length(unique(d01_clean$dist_name))</code></pre>
@@ -691,74 +641,45 @@ length(unique(d01_clean$dist_name))</code></pre>
 <pre class="r"><code>d01_2 &lt;- read.csv(&quot;documentation/data/input/2001census_2003order.csv&quot;, encoding = &quot;latin1&quot;)
 summary(d01_2)
 
-d01_2_clean &lt;- d01_2 %&gt;% 
-  rename(geo = Géographie,
-         sex = `Sexe..3.`) %&gt;% 
-  filter(str_detect(geo, &quot;[:alpha:]&quot;),
-         str_detect(sex, &quot;Total&quot;),
-         !str_detect(geo, &quot;Newfoundland | Terre-Neuve&quot;),
-         !str_detect(geo, &quot;Prince Edward Island | Île-du-Prince-Édouard&quot;),
-         !str_detect(geo, &quot;Nova Scotia | Nouvelle-Écosse&quot;),
-         !str_detect(geo, &quot;New Brunswick - Nouveau-Brunswick \\(13\\)&quot;),
-         !str_detect(geo, &quot;Québec \\(24\\)&quot;),
-         !str_detect(geo, &quot;Ontario \\(35\\)&quot;),
-         !str_detect(geo, &quot;Saskatchewan&quot;),
-         !str_detect(geo, &quot;Manitoba&quot;),
-         !str_detect(geo, &quot;Alberta&quot;),
-         !str_detect(geo, &quot;British Columbia | Colombie-Britannique&quot;),
-         !str_detect(geo, &quot;Yukon Territory&quot;),
-         !str_detect(geo, &quot;Northwest Territories&quot;),
-         !str_detect(geo, &quot;Canada&quot;),
-         !str_detect(geo, &quot;Nunavut \\(62\\)&quot;)) %&gt;% 
-  gather(age, value, `Total...Âge`:`X100.`) %&gt;% 
-  filter(!str_detect(age, &quot;Total&quot;)) %&gt;% 
-  dplyr::select(geo, age, value)
+d01_2_clean &lt;- d01_2 %&gt;% rename(geo = Géographie, sex = Sexe..3.) %&gt;% filter(str_detect(geo, 
+    &quot;[:alpha:]&quot;), str_detect(sex, &quot;Total&quot;), !str_detect(geo, &quot;Newfoundland | Terre-Neuve&quot;), 
+    !str_detect(geo, &quot;Prince Edward Island | Île-du-Prince-Édouard&quot;), !str_detect(geo, 
+        &quot;Nova Scotia | Nouvelle-Écosse&quot;), !str_detect(geo, &quot;New Brunswick - Nouveau-Brunswick \\(13\\)&quot;), 
+    !str_detect(geo, &quot;Québec \\(24\\)&quot;), !str_detect(geo, &quot;Ontario \\(35\\)&quot;), !str_detect(geo, 
+        &quot;Saskatchewan&quot;), !str_detect(geo, &quot;Manitoba&quot;), !str_detect(geo, &quot;Alberta&quot;), 
+    !str_detect(geo, &quot;British Columbia | Colombie-Britannique&quot;), !str_detect(geo, 
+        &quot;Yukon Territory&quot;), !str_detect(geo, &quot;Northwest Territories&quot;), !str_detect(geo, 
+        &quot;Canada&quot;), !str_detect(geo, &quot;Nunavut \\(62\\)&quot;)) %&gt;% gather(age, value, Total...Âge:X100.) %&gt;% 
+    filter(!str_detect(age, &quot;Total&quot;)) %&gt;% dplyr::select(geo, age, value)
 
 table(d01_2_clean$age)
 
-d01_2_clean &lt;- d01_2_clean %&gt;%
-  mutate(age = ifelse(age == &quot;Moins.de.1.an&quot;, 0, age),
-         age = ifelse(age == &quot;X100.&quot;, 100, age)) %&gt;% 
-  mutate(age = str_remove(age, &quot;ans&quot;),
-         age = str_remove(age, &quot;an&quot;)) %&gt;% 
-  filter(!str_detect(age, &quot;\\.1&quot;),
-         !str_detect(age, &quot;\\.2&quot;),
-         !str_detect(age, &quot;\\.3&quot;),
-         !str_detect(age, &quot;\\.4&quot;),
-         !str_detect(age, &quot;\\.5&quot;),
-         !str_detect(age, &quot;\\.6&quot;),
-         !str_detect(age, &quot;\\.7&quot;),
-         !str_detect(age, &quot;\\.8&quot;),
-         !str_detect(age, &quot;\\.9&quot;)) %&gt;% 
-  mutate(age = str_remove(age, &quot;X&quot;),
-         age = str_remove(age, &quot;\\.&quot;))
+d01_2_clean &lt;- d01_2_clean %&gt;% mutate(age = ifelse(age == &quot;Moins.de.1.an&quot;, 0, age), 
+    age = ifelse(age == &quot;X100.&quot;, 100, age)) %&gt;% mutate(age = str_remove(age, &quot;ans&quot;), 
+    age = str_remove(age, &quot;an&quot;)) %&gt;% filter(!str_detect(age, &quot;\\.1&quot;), !str_detect(age, 
+    &quot;\\.2&quot;), !str_detect(age, &quot;\\.3&quot;), !str_detect(age, &quot;\\.4&quot;), !str_detect(age, 
+    &quot;\\.5&quot;), !str_detect(age, &quot;\\.6&quot;), !str_detect(age, &quot;\\.7&quot;), !str_detect(age, 
+    &quot;\\.8&quot;), !str_detect(age, &quot;\\.9&quot;)) %&gt;% mutate(age = str_remove(age, &quot;X&quot;), age = str_remove(age, 
+    &quot;\\.&quot;))
 
 table(d01_2_clean$age)
 class(d01_2_clean$age)
 
-d01_2_clean &lt;- d01_2_clean %&gt;% 
-  mutate(age = as.numeric(age))
+d01_2_clean &lt;- d01_2_clean %&gt;% mutate(age = as.numeric(age))
 
 table(d01_2_clean$age)
 class(d01_2_clean$age)
 
-d01_2_clean &lt;- d01_2_clean %&gt;% 
-  mutate(census = 2001,
-         ro = 2003)
+d01_2_clean &lt;- d01_2_clean %&gt;% mutate(census = 2001, ro = 2003)
 
-d01_2_clean &lt;- d01_2_clean %&gt;% 
-  mutate(dist_name = str_remove_all(geo, &quot;[0-9]+&quot;),
-         dist_name = str_remove_all(dist_name, &quot;\\(\\)&quot;),
-         dist_nb = str_extract_all(geo, &quot;\\([^()]+\\)&quot;),
-         dist_nb = str_extract_all(dist_nb, &quot;(?&lt;=\\().+?(?=\\))&quot;)) %&gt;% 
-  unnest(dist_nb) %&gt;% 
-  mutate(dist_name = str_replace_all(dist_name, &quot; - &quot;, &quot;/&quot;),
-         dist_name = str_replace_all(dist_name, &quot; -&quot;, &quot;-&quot;),
-         dist_name = str_replace_all(dist_name, &quot;- &quot;, &quot;-&quot;),
-         dist_name = str_replace_all(dist_name, &quot;--&quot;, &quot;-&quot;),
-         dist_name = str_trim(dist_name, side = &quot;both&quot;),
-         dist_name = str_replace_all(dist_name, &quot; / &quot;, &quot;/&quot;)) %&gt;%
-  select(-geo, -ro) 
+d01_2_clean &lt;- d01_2_clean %&gt;% mutate(dist_name = str_remove_all(geo, &quot;[0-9]+&quot;), 
+    dist_name = str_remove_all(dist_name, &quot;\\(\\)&quot;), dist_nb = str_extract_all(geo, 
+        &quot;\\([^()]+\\)&quot;), dist_nb = str_extract_all(dist_nb, &quot;(?&lt;=\\().+?(?=\\))&quot;)) %&gt;% 
+    unnest(dist_nb) %&gt;% mutate(dist_name = str_replace_all(dist_name, &quot; - &quot;, &quot;/&quot;), 
+    dist_name = str_replace_all(dist_name, &quot; -&quot;, &quot;-&quot;), dist_name = str_replace_all(dist_name, 
+        &quot;- &quot;, &quot;-&quot;), dist_name = str_replace_all(dist_name, &quot;--&quot;, &quot;-&quot;), dist_name = str_trim(dist_name, 
+        side = &quot;both&quot;), dist_name = str_replace_all(dist_name, &quot; / &quot;, &quot;/&quot;)) %&gt;% select(-geo, 
+    -ro)
 
 length(unique(d01_2_clean$dist_nb))
 length(unique(d01_2_clean$dist_name))</code></pre>
@@ -768,64 +689,41 @@ length(unique(d01_2_clean$dist_name))</code></pre>
 <pre class="r"><code>d06 &lt;- read.csv(&quot;documentation/data/input/2006census_2003order.csv&quot;, encoding = &quot;latin1&quot;)
 summary(d06)
 
-d06_clean &lt;- d06 %&gt;% 
-  rename(geo = Géographie,
-         sex = `Sexe..3.`) %&gt;% 
-  select(-`Âge.médian`) %&gt;% 
-  filter(str_detect(geo, &quot;[:alpha:]&quot;),
-         str_detect(sex, &quot;Total&quot;),
-         !str_detect(geo, &quot;Newfoundland | Terre-Neuve&quot;),
-         !str_detect(geo, &quot;Prince Edward Island | Île-du-Prince-Édouard&quot;),
-         !str_detect(geo, &quot;Nova Scotia | Nouvelle-Écosse&quot;),
-         !str_detect(geo, &quot;New Brunswick / Nouveau-Brunswick \\(13\\)&quot;),
-         !str_detect(geo, &quot;Québec \\(24\\)&quot;),
-         !str_detect(geo, &quot;Ontario \\(35\\)&quot;),
-         !str_detect(geo, &quot;Saskatchewan&quot;),
-         !str_detect(geo, &quot;Manitoba&quot;),
-         !str_detect(geo, &quot;Alberta&quot;),
-         !str_detect(geo, &quot;Colombie-Britannique \\(59\\)&quot;),
-         !str_detect(geo, &quot;Yukon Territory&quot;),
-         !str_detect(geo, &quot;Northwest Territories&quot;),
-         !str_detect(geo, &quot;Canada&quot;),
-         !str_detect(geo, &quot;Nunavut \\(62\\)&quot;)) %&gt;% 
-  gather(age, value, `Total...Âge`:`X100.ans.et.plus`) %&gt;% 
-  filter(!str_detect(age, &quot;Total&quot;)) %&gt;% 
-  dplyr::select(geo, age, value)
+d06_clean &lt;- d06 %&gt;% rename(geo = Géographie, sex = Sexe..3.) %&gt;% select(-Âge.médian) %&gt;% 
+    filter(str_detect(geo, &quot;[:alpha:]&quot;), str_detect(sex, &quot;Total&quot;), !str_detect(geo, 
+        &quot;Newfoundland | Terre-Neuve&quot;), !str_detect(geo, &quot;Prince Edward Island | Île-du-Prince-Édouard&quot;), 
+        !str_detect(geo, &quot;Nova Scotia | Nouvelle-Écosse&quot;), !str_detect(geo, &quot;New Brunswick / Nouveau-Brunswick \\(13\\)&quot;), 
+        !str_detect(geo, &quot;Québec \\(24\\)&quot;), !str_detect(geo, &quot;Ontario \\(35\\)&quot;), 
+        !str_detect(geo, &quot;Saskatchewan&quot;), !str_detect(geo, &quot;Manitoba&quot;), !str_detect(geo, 
+            &quot;Alberta&quot;), !str_detect(geo, &quot;Colombie-Britannique \\(59\\)&quot;), !str_detect(geo, 
+            &quot;Yukon Territory&quot;), !str_detect(geo, &quot;Northwest Territories&quot;), !str_detect(geo, 
+            &quot;Canada&quot;), !str_detect(geo, &quot;Nunavut \\(62\\)&quot;)) %&gt;% gather(age, value, 
+    Total...Âge:X100.ans.et.plus) %&gt;% filter(!str_detect(age, &quot;Total&quot;)) %&gt;% dplyr::select(geo, 
+    age, value)
 
 table(d06_clean$age)
 
-d06_clean &lt;- d06_clean %&gt;%
-  mutate(age = ifelse(age == &quot;Moins.de.1.an&quot;, 0, age),
-         age = ifelse(age == &quot;X100.ans.et.plus&quot;, 100, age),
-         age = str_remove_all(age, &quot;X&quot;)) %&gt;% 
-  filter(!str_detect(age, &quot;ans&quot;))
+d06_clean &lt;- d06_clean %&gt;% mutate(age = ifelse(age == &quot;Moins.de.1.an&quot;, 0, age), age = ifelse(age == 
+    &quot;X100.ans.et.plus&quot;, 100, age), age = str_remove_all(age, &quot;X&quot;)) %&gt;% filter(!str_detect(age, 
+    &quot;ans&quot;))
 
 table(d06_clean$age)
 class(d06_clean$age)
 
-d06_clean &lt;- d06_clean %&gt;% 
-  mutate(age = as.numeric(age))
+d06_clean &lt;- d06_clean %&gt;% mutate(age = as.numeric(age))
 
 table(d06_clean$age)
 class(d06_clean$age)
 
-d06_clean &lt;- d06_clean %&gt;% 
-  mutate(census = 2006,
-         ro = 2003)
+d06_clean &lt;- d06_clean %&gt;% mutate(census = 2006, ro = 2003)
 
-d06_clean &lt;- d06_clean %&gt;% 
-  mutate(dist_name = str_remove_all(geo, &quot;[0-9]+&quot;),
-         dist_name = str_remove_all(dist_name, &quot;\\(\\)&quot;),
-         dist_nb = str_extract_all(geo, &quot;\\([^()]+\\)&quot;),
-         dist_nb = str_extract_all(dist_nb, &quot;(?&lt;=\\().+?(?=\\))&quot;)) %&gt;% 
-  unnest(dist_nb) %&gt;% 
-  mutate(dist_name = str_replace_all(dist_name, &quot; - &quot;, &quot;-&quot;),
-         dist_name = str_replace_all(dist_name, &quot; -&quot;, &quot;-&quot;),
-         dist_name = str_replace_all(dist_name, &quot;- &quot;, &quot;-&quot;),
-         dist_name = str_replace_all(dist_name, &quot;--&quot;, &quot;-&quot;),
-         dist_name = str_trim(dist_name, side = &quot;both&quot;),
-         dist_name = str_replace_all(dist_name, &quot; / &quot;, &quot;/&quot;)) %&gt;%
-  select(-geo, -ro) 
+d06_clean &lt;- d06_clean %&gt;% mutate(dist_name = str_remove_all(geo, &quot;[0-9]+&quot;), dist_name = str_remove_all(dist_name, 
+    &quot;\\(\\)&quot;), dist_nb = str_extract_all(geo, &quot;\\([^()]+\\)&quot;), dist_nb = str_extract_all(dist_nb, 
+    &quot;(?&lt;=\\().+?(?=\\))&quot;)) %&gt;% unnest(dist_nb) %&gt;% mutate(dist_name = str_replace_all(dist_name, 
+    &quot; - &quot;, &quot;-&quot;), dist_name = str_replace_all(dist_name, &quot; -&quot;, &quot;-&quot;), dist_name = str_replace_all(dist_name, 
+    &quot;- &quot;, &quot;-&quot;), dist_name = str_replace_all(dist_name, &quot;--&quot;, &quot;-&quot;), dist_name = str_trim(dist_name, 
+    side = &quot;both&quot;), dist_name = str_replace_all(dist_name, &quot; / &quot;, &quot;/&quot;)) %&gt;% select(-geo, 
+    -ro)
 
 length(unique(d06_clean$dist_nb))
 length(unique(d06_clean$dist_name))</code></pre>
@@ -835,64 +733,41 @@ length(unique(d06_clean$dist_name))</code></pre>
 <pre class="r"><code>d11 &lt;- read.csv(&quot;documentation/data/input/2011census_2003order.csv&quot;, encoding = &quot;latin1&quot;)
 summary(d11)
 
-d11_clean &lt;- d11 %&gt;% 
-  rename(geo = Géographie,
-         sex = `Sexe..3.`) %&gt;% 
-  select(-`Âge.médian`) %&gt;% 
-  filter(str_detect(geo, &quot;[:alpha:]&quot;),
-         str_detect(sex, &quot;Total&quot;),
-         !str_detect(geo, &quot;Newfoundland | Terre-Neuve&quot;),
-         !str_detect(geo, &quot;Prince Edward Island | Île-du-Prince-Édouard&quot;),
-         !str_detect(geo, &quot;Nova Scotia | Nouvelle-Écosse&quot;),
-         !str_detect(geo, &quot;New Brunswick / Nouveau-Brunswick \\(13\\)&quot;),
-         !str_detect(geo, &quot;Quebec | Québec&quot;),
-         !str_detect(geo, &quot;Ontario \\(35\\)&quot;),
-         !str_detect(geo, &quot;Saskatchewan&quot;),
-         !str_detect(geo, &quot;Manitoba&quot;),
-         !str_detect(geo, &quot;Alberta&quot;),
-         !str_detect(geo, &quot;Colombie-Britannique \\(59\\)&quot;),
-         !str_detect(geo, &quot;Yukon \\(60\\)&quot;),
-         !str_detect(geo, &quot;Northwest Territories&quot;),
-         !str_detect(geo, &quot;Canada&quot;),
-         !str_detect(geo, &quot;Nunavut \\(62\\)&quot;)) %&gt;% 
-  gather(age, value, `Total...Âge`:`X100.ans.et.plus`) %&gt;% 
-  filter(!str_detect(age, &quot;Total&quot;)) %&gt;% 
-  dplyr::select(geo, age, value)
+d11_clean &lt;- d11 %&gt;% rename(geo = Géographie, sex = Sexe..3.) %&gt;% select(-Âge.médian) %&gt;% 
+    filter(str_detect(geo, &quot;[:alpha:]&quot;), str_detect(sex, &quot;Total&quot;), !str_detect(geo, 
+        &quot;Newfoundland | Terre-Neuve&quot;), !str_detect(geo, &quot;Prince Edward Island | Île-du-Prince-Édouard&quot;), 
+        !str_detect(geo, &quot;Nova Scotia | Nouvelle-Écosse&quot;), !str_detect(geo, &quot;New Brunswick / Nouveau-Brunswick \\(13\\)&quot;), 
+        !str_detect(geo, &quot;Quebec | Québec&quot;), !str_detect(geo, &quot;Ontario \\(35\\)&quot;), 
+        !str_detect(geo, &quot;Saskatchewan&quot;), !str_detect(geo, &quot;Manitoba&quot;), !str_detect(geo, 
+            &quot;Alberta&quot;), !str_detect(geo, &quot;Colombie-Britannique \\(59\\)&quot;), !str_detect(geo, 
+            &quot;Yukon \\(60\\)&quot;), !str_detect(geo, &quot;Northwest Territories&quot;), !str_detect(geo, 
+            &quot;Canada&quot;), !str_detect(geo, &quot;Nunavut \\(62\\)&quot;)) %&gt;% gather(age, value, 
+    Total...Âge:X100.ans.et.plus) %&gt;% filter(!str_detect(age, &quot;Total&quot;)) %&gt;% dplyr::select(geo, 
+    age, value)
 
 table(d11_clean$age)
 
-d11_clean &lt;- d11_clean %&gt;%
-  mutate(age = ifelse(age == &quot;Moins.de.1.an&quot;, 0, age),
-         age = ifelse(age == &quot;X100.ans.et.plus&quot;, 100, age),
-         age = str_remove(age, &quot;X&quot;)) %&gt;% 
-  filter(!str_detect(age, &quot;ans&quot;)) 
+d11_clean &lt;- d11_clean %&gt;% mutate(age = ifelse(age == &quot;Moins.de.1.an&quot;, 0, age), age = ifelse(age == 
+    &quot;X100.ans.et.plus&quot;, 100, age), age = str_remove(age, &quot;X&quot;)) %&gt;% filter(!str_detect(age, 
+    &quot;ans&quot;))
 
 table(d11_clean$age)
 class(d11_clean$age)
 
-d11_clean &lt;- d11_clean %&gt;% 
-  mutate(age = as.numeric(age))
+d11_clean &lt;- d11_clean %&gt;% mutate(age = as.numeric(age))
 
 table(d11_clean$age)
 class(d11_clean$age)
 
-d11_clean &lt;- d11_clean %&gt;% 
-  mutate(census = 2011,
-         ro = 2003)
+d11_clean &lt;- d11_clean %&gt;% mutate(census = 2011, ro = 2003)
 
-d11_clean &lt;- d11_clean %&gt;% 
-  mutate(dist_name = str_remove_all(geo, &quot;[0-9]+&quot;),
-         dist_name = str_remove_all(dist_name, &quot;\\(\\)&quot;),
-         dist_nb = str_extract_all(geo, &quot;\\([^()]+\\)&quot;),
-         dist_nb = str_extract_all(dist_nb, &quot;(?&lt;=\\().+?(?=\\))&quot;)) %&gt;% 
-  unnest(dist_nb) %&gt;% 
-  mutate(dist_name = str_replace_all(dist_name, &quot; - &quot;, &quot;-&quot;),
-         dist_name = str_replace_all(dist_name, &quot; -&quot;, &quot;-&quot;),
-         dist_name = str_replace_all(dist_name, &quot;- &quot;, &quot;-&quot;),
-         dist_name = str_replace_all(dist_name, &quot;--&quot;, &quot;-&quot;),
-         dist_name = str_trim(dist_name, side = &quot;both&quot;),
-         dist_name = str_replace_all(dist_name, &quot; / &quot;, &quot;/&quot;)) %&gt;%
-  select(-geo, -ro) 
+d11_clean &lt;- d11_clean %&gt;% mutate(dist_name = str_remove_all(geo, &quot;[0-9]+&quot;), dist_name = str_remove_all(dist_name, 
+    &quot;\\(\\)&quot;), dist_nb = str_extract_all(geo, &quot;\\([^()]+\\)&quot;), dist_nb = str_extract_all(dist_nb, 
+    &quot;(?&lt;=\\().+?(?=\\))&quot;)) %&gt;% unnest(dist_nb) %&gt;% mutate(dist_name = str_replace_all(dist_name, 
+    &quot; - &quot;, &quot;-&quot;), dist_name = str_replace_all(dist_name, &quot; -&quot;, &quot;-&quot;), dist_name = str_replace_all(dist_name, 
+    &quot;- &quot;, &quot;-&quot;), dist_name = str_replace_all(dist_name, &quot;--&quot;, &quot;-&quot;), dist_name = str_trim(dist_name, 
+    side = &quot;both&quot;), dist_name = str_replace_all(dist_name, &quot; / &quot;, &quot;/&quot;)) %&gt;% select(-geo, 
+    -ro)
 
 length(unique(d06_clean$dist_nb))
 length(unique(d06_clean$dist_name))</code></pre>
@@ -902,64 +777,42 @@ length(unique(d06_clean$dist_name))</code></pre>
 <pre class="r"><code>d11_2 &lt;- read.csv(&quot;documentation/data/input/2011census_2013order.csv&quot;, encoding = &quot;latin1&quot;)
 summary(d11_2)
 
-d11_2_clean &lt;- d11_2 %&gt;% 
-  rename(geo = Géographie,
-         sex = `Sexe..3.`) %&gt;% 
-  select(-`Âge.médian`) %&gt;% 
-  filter(str_detect(geo, &quot;[:alpha:]&quot;),
-         str_detect(sex, &quot;Total&quot;),
-         !str_detect(geo, &quot;Newfoundland | Terre-Neuve&quot;),
-         !str_detect(geo, &quot;Prince Edward Island | Île-du-Prince-Édouard&quot;),
-         !str_detect(geo, &quot;Nova Scotia | Nouvelle-Écosse&quot;),
-         !str_detect(geo, &quot;New Brunswick / Nouveau-Brunswick \\(13\\)&quot;),
-         !str_detect(geo, &quot;Quebec | Québec&quot;),
-         !str_detect(geo, &quot;Ontario \\(35\\)&quot;),
-         !str_detect(geo, &quot;Saskatchewan \\(47\\)&quot;),
-         !str_detect(geo, &quot;Manitoba&quot;),
-         !str_detect(geo, &quot;Alberta&quot;),
-         !str_detect(geo, &quot;Colombie-Britannique \\(59\\)&quot;),
-         !str_detect(geo, &quot;Yukon \\(60\\)&quot;),
-         !str_detect(geo, &quot;Northwest Territories / Territoires du Nord-Ouest \\(61\\)&quot;),
-         !str_detect(geo, &quot;Canada&quot;),
-         !str_detect(geo, &quot;Nunavut \\(62\\)&quot;)) %&gt;% 
-  gather(age, value, `Total...Âge`:`X100.ans.et.plus`) %&gt;% 
-  filter(!str_detect(age, &quot;Total&quot;)) %&gt;% 
-  dplyr::select(geo, age, value)
+d11_2_clean &lt;- d11_2 %&gt;% rename(geo = Géographie, sex = Sexe..3.) %&gt;% select(-Âge.médian) %&gt;% 
+    filter(str_detect(geo, &quot;[:alpha:]&quot;), str_detect(sex, &quot;Total&quot;), !str_detect(geo, 
+        &quot;Newfoundland | Terre-Neuve&quot;), !str_detect(geo, &quot;Prince Edward Island | Île-du-Prince-Édouard&quot;), 
+        !str_detect(geo, &quot;Nova Scotia | Nouvelle-Écosse&quot;), !str_detect(geo, &quot;New Brunswick / Nouveau-Brunswick \\(13\\)&quot;), 
+        !str_detect(geo, &quot;Quebec | Québec&quot;), !str_detect(geo, &quot;Ontario \\(35\\)&quot;), 
+        !str_detect(geo, &quot;Saskatchewan \\(47\\)&quot;), !str_detect(geo, &quot;Manitoba&quot;), 
+        !str_detect(geo, &quot;Alberta&quot;), !str_detect(geo, &quot;Colombie-Britannique \\(59\\)&quot;), 
+        !str_detect(geo, &quot;Yukon \\(60\\)&quot;), !str_detect(geo, &quot;Northwest Territories / Territoires du Nord-Ouest \\(61\\)&quot;), 
+        !str_detect(geo, &quot;Canada&quot;), !str_detect(geo, &quot;Nunavut \\(62\\)&quot;)) %&gt;% gather(age, 
+    value, Total...Âge:X100.ans.et.plus) %&gt;% filter(!str_detect(age, &quot;Total&quot;)) %&gt;% 
+    dplyr::select(geo, age, value)
 
 table(d11_2_clean$age)
 
-d11_2_clean &lt;- d11_2_clean %&gt;%
-  mutate(age = ifelse(age == &quot;Moins.de.1.an&quot;, 0, age),
-         age = ifelse(age == &quot;X100.ans.et.plus&quot;, 100, age),
-         age = str_remove(age, &quot;X&quot;)) %&gt;% 
-  filter(!str_detect(age, &quot;ans&quot;))
+d11_2_clean &lt;- d11_2_clean %&gt;% mutate(age = ifelse(age == &quot;Moins.de.1.an&quot;, 0, age), 
+    age = ifelse(age == &quot;X100.ans.et.plus&quot;, 100, age), age = str_remove(age, &quot;X&quot;)) %&gt;% 
+    filter(!str_detect(age, &quot;ans&quot;))
 
 table(d11_2_clean$age)
 class(d11_2_clean$age)
 
-d11_2_clean &lt;- d11_2_clean %&gt;% 
-  mutate(age = as.numeric(age))
+d11_2_clean &lt;- d11_2_clean %&gt;% mutate(age = as.numeric(age))
 
 table(d11_2_clean$age)
 class(d11_2_clean$age)
 
-d11_2_clean &lt;- d11_2_clean %&gt;% 
-  mutate(census = 2011,
-         ro = 2013)
+d11_2_clean &lt;- d11_2_clean %&gt;% mutate(census = 2011, ro = 2013)
 
-d11_2_clean &lt;- d11_2_clean %&gt;% 
-  mutate(dist_name = str_remove_all(geo, &quot;[0-9]+&quot;),
-         dist_name = str_remove_all(dist_name, &quot;\\(\\)&quot;),
-         dist_nb = str_extract_all(geo, &quot;\\([^()]+\\)&quot;),
-         dist_nb = str_extract_all(dist_nb, &quot;(?&lt;=\\().+?(?=\\))&quot;)) %&gt;% 
-  unnest(dist_nb) %&gt;% 
-  mutate(dist_name = str_replace_all(dist_name, &quot; - &quot;, &quot;-&quot;),
-         dist_name = str_replace_all(dist_name, &quot; -&quot;, &quot;-&quot;),
-         dist_name = str_replace_all(dist_name, &quot;- &quot;, &quot;-&quot;),
-         dist_name = str_replace_all(dist_name, &quot;--&quot;, &quot;-&quot;),
-         dist_name = str_trim(dist_name, side = &quot;both&quot;),
-         dist_name = str_replace_all(dist_name, &quot; / &quot;, &quot;/&quot;)) %&gt;%
-  select(-geo, -ro) 
+d11_2_clean &lt;- d11_2_clean %&gt;% mutate(dist_name = str_remove_all(geo, &quot;[0-9]+&quot;), 
+    dist_name = str_remove_all(dist_name, &quot;\\(\\)&quot;), dist_nb = str_extract_all(geo, 
+        &quot;\\([^()]+\\)&quot;), dist_nb = str_extract_all(dist_nb, &quot;(?&lt;=\\().+?(?=\\))&quot;)) %&gt;% 
+    unnest(dist_nb) %&gt;% mutate(dist_name = str_replace_all(dist_name, &quot; - &quot;, &quot;-&quot;), 
+    dist_name = str_replace_all(dist_name, &quot; -&quot;, &quot;-&quot;), dist_name = str_replace_all(dist_name, 
+        &quot;- &quot;, &quot;-&quot;), dist_name = str_replace_all(dist_name, &quot;--&quot;, &quot;-&quot;), dist_name = str_trim(dist_name, 
+        side = &quot;both&quot;), dist_name = str_replace_all(dist_name, &quot; / &quot;, &quot;/&quot;)) %&gt;% select(-geo, 
+    -ro)
 
 length(unique(d11_2_clean$dist_nb))
 length(unique(d11_2_clean$dist_name))</code></pre>
@@ -969,67 +822,42 @@ length(unique(d11_2_clean$dist_name))</code></pre>
 <pre class="r"><code>d16 &lt;- read.csv(&quot;documentation/data/input/2016census_2013order.csv&quot;, encoding = &quot;latin1&quot;)
 summary(d16)
 
-d16_clean &lt;- d16 %&gt;% 
-  rename(geo = Géographie,
-         sex = `Sexe..3.`) %&gt;% 
-  select(-`Âge.moyen`) %&gt;% 
-  filter(str_detect(geo, &quot;[:alpha:]&quot;),
-         str_detect(sex, &quot;Total&quot;),
-         !str_detect(geo, &quot;Newfoundland | Terre-Neuve&quot;),
-         !str_detect(geo, &quot;Prince Edward Island | Île-du-Prince-Édouard&quot;),
-         !str_detect(geo, &quot;Nova Scotia | Nouvelle-Écosse&quot;),
-         !str_detect(geo, &quot;New Brunswick / Nouveau-Brunswick \\(13\\)&quot;),
-         !str_detect(geo, &quot;Quebec | Québec&quot;),
-         !str_detect(geo, &quot;Ontario \\(35\\)&quot;),
-         !str_detect(geo, &quot;Saskatchewan \\(47\\)&quot;),
-         !str_detect(geo, &quot;Manitoba&quot;),
-         !str_detect(geo, &quot;Alberta&quot;),
-         !str_detect(geo, &quot;Colombie-Britannique \\(59\\)&quot;),
-         !str_detect(geo, &quot;Yukon \\(60\\)&quot;),
-         !str_detect(geo, &quot;Northwest Territories / Territoires du Nord-Ouest \\(61\\)&quot;),
-         !str_detect(geo, &quot;Canada&quot;),
-         !str_detect(geo, &quot;Nunavut \\(62\\)&quot;)) %&gt;% 
-  gather(age, value, `Total...Âge`:`X100.ans.et.plus`) %&gt;% 
-  filter(!str_detect(age, &quot;Total&quot;)) %&gt;% 
-  dplyr::select(geo, age, value)
+d16_clean &lt;- d16 %&gt;% rename(geo = Géographie, sex = Sexe..3.) %&gt;% select(-Âge.moyen) %&gt;% 
+    filter(str_detect(geo, &quot;[:alpha:]&quot;), str_detect(sex, &quot;Total&quot;), !str_detect(geo, 
+        &quot;Newfoundland | Terre-Neuve&quot;), !str_detect(geo, &quot;Prince Edward Island | Île-du-Prince-Édouard&quot;), 
+        !str_detect(geo, &quot;Nova Scotia | Nouvelle-Écosse&quot;), !str_detect(geo, &quot;New Brunswick / Nouveau-Brunswick \\(13\\)&quot;), 
+        !str_detect(geo, &quot;Quebec | Québec&quot;), !str_detect(geo, &quot;Ontario \\(35\\)&quot;), 
+        !str_detect(geo, &quot;Saskatchewan \\(47\\)&quot;), !str_detect(geo, &quot;Manitoba&quot;), 
+        !str_detect(geo, &quot;Alberta&quot;), !str_detect(geo, &quot;Colombie-Britannique \\(59\\)&quot;), 
+        !str_detect(geo, &quot;Yukon \\(60\\)&quot;), !str_detect(geo, &quot;Northwest Territories / Territoires du Nord-Ouest \\(61\\)&quot;), 
+        !str_detect(geo, &quot;Canada&quot;), !str_detect(geo, &quot;Nunavut \\(62\\)&quot;)) %&gt;% gather(age, 
+    value, Total...Âge:X100.ans.et.plus) %&gt;% filter(!str_detect(age, &quot;Total&quot;)) %&gt;% 
+    dplyr::select(geo, age, value)
 
 table(d16_clean$age)
 
-d16_clean &lt;- d16_clean %&gt;%
-  mutate(age = ifelse(age == &quot;Moins.de.1.an&quot;, 0, age),
-         age = ifelse(age == &quot;X100.ans.et.plus&quot;, 100, age),
-         age = str_remove(age, &quot;X&quot;)) %&gt;% 
-  filter(!str_detect(age, &quot;ans&quot;))
+d16_clean &lt;- d16_clean %&gt;% mutate(age = ifelse(age == &quot;Moins.de.1.an&quot;, 0, age), age = ifelse(age == 
+    &quot;X100.ans.et.plus&quot;, 100, age), age = str_remove(age, &quot;X&quot;)) %&gt;% filter(!str_detect(age, 
+    &quot;ans&quot;))
 
 table(d16_clean$age)
 class(d16_clean$age)
 
-d16_clean &lt;- d16_clean %&gt;% 
-  mutate(age = as.numeric(age))
+d16_clean &lt;- d16_clean %&gt;% mutate(age = as.numeric(age))
 
 table(d16_clean$age)
 class(d16_clean$age)
 
-d16_clean &lt;- d16_clean %&gt;% 
-  mutate(census = 2016,
-         ro = 2013)
+d16_clean &lt;- d16_clean %&gt;% mutate(census = 2016, ro = 2013)
 
-d16_clean &lt;- d16_clean %&gt;% 
-  mutate(dist_name = str_remove_all(geo, &quot;[0-9]+&quot;),
-         dist_name = str_remove_all(dist_name, &quot;\\(.*\\)&quot;),
-         dist_nb = str_extract_all(geo, &quot;\\([^()]+\\)&quot;)) %&gt;% 
-  unnest(dist_nb) %&gt;% 
-  filter(str_detect(dist_nb, &quot;%&quot;, negate = TRUE)) %&gt;% 
-  mutate(dist_nb = str_extract_all(dist_nb, &quot;(?&lt;=\\().+?(?=\\))&quot;)) %&gt;% 
-  unnest(dist_nb) %&gt;% 
-  mutate(dist_name = str_replace_all(dist_name, &quot; - &quot;, &quot;-&quot;),
-         dist_name = str_replace_all(dist_name, &quot; -&quot;, &quot;-&quot;),
-         dist_name = str_replace_all(dist_name, &quot;- &quot;, &quot;-&quot;),
-         dist_name = str_replace_all(dist_name, &quot;--&quot;, &quot;-&quot;),
-         dist_name = str_trim(dist_name, side = &quot;both&quot;),
-         dist_name = str_replace_all(dist_name, &quot; / &quot;, &quot;/&quot;),
-         dist_name = str_replace_all(dist_name, &quot; /&quot;, &quot;/&quot;)) %&gt;%
-  select(-geo, -ro) 
+d16_clean &lt;- d16_clean %&gt;% mutate(dist_name = str_remove_all(geo, &quot;[0-9]+&quot;), dist_name = str_remove_all(dist_name, 
+    &quot;\\(.*\\)&quot;), dist_nb = str_extract_all(geo, &quot;\\([^()]+\\)&quot;)) %&gt;% unnest(dist_nb) %&gt;% 
+    filter(str_detect(dist_nb, &quot;%&quot;, negate = TRUE)) %&gt;% mutate(dist_nb = str_extract_all(dist_nb, 
+    &quot;(?&lt;=\\().+?(?=\\))&quot;)) %&gt;% unnest(dist_nb) %&gt;% mutate(dist_name = str_replace_all(dist_name, 
+    &quot; - &quot;, &quot;-&quot;), dist_name = str_replace_all(dist_name, &quot; -&quot;, &quot;-&quot;), dist_name = str_replace_all(dist_name, 
+    &quot;- &quot;, &quot;-&quot;), dist_name = str_replace_all(dist_name, &quot;--&quot;, &quot;-&quot;), dist_name = str_trim(dist_name, 
+    side = &quot;both&quot;), dist_name = str_replace_all(dist_name, &quot; / &quot;, &quot;/&quot;), dist_name = str_replace_all(dist_name, 
+    &quot; /&quot;, &quot;/&quot;)) %&gt;% select(-geo, -ro)
 
 length(unique(d16_clean$dist_name))
 length(unique(d16_clean$dist_nb))</code></pre>
@@ -1040,14 +868,17 @@ length(unique(d16_clean$dist_nb))</code></pre>
 <p>Here, we will merge censuses that use the same representation orders. For example, we need to merge the 1991 and 1996 census that use both the 1987 r.o. in order to be able (later) to interpolate age breakdowns in 1993, an election that was run under the 1987 r.o. At this step, there were (yet again) some spelling differences in district names. This made my head want to explode, but I managed to reach the expected result !</p>
 <div id="merge-1991-census-1987-representation-order-with-1996-census-1987-representation-order-to-map-with-1993-parliament-data." class="section level4">
 <h4>Merge 1991 census (1987 Representation order) with 1996 census (1987 Representation order) to map with <em>1993 parliament data.</em></h4>
-<pre class="r"><code>d91_clean &lt;- d91_clean %&gt;% # we want to have one observation per electoral district, with variables for each age category
+<pre class="r"><code># we want to have one observation per electoral district, with variables for each age category
+d91_clean &lt;- d91_clean %&gt;% 
   spread(age, value)
 d96_clean &lt;- d96_clean %&gt;% 
   spread(age, value)
 
-ro1987 &lt;- rbind(d91_clean, d96_clean) %&gt;% # we then bind the 2 dataframes (vertically, one on top of the other)
-  gather(age, value, `0`:`90`) %&gt;% # again, we gather the age variables, now we have one observation for each district-census-age combination (long format)
-  spread(census, value) # finally, we come back to a wide format by spreading the values for each age category
+# we then bind the 2 dataframes (vertically, one on top of the other)
+ro1987 &lt;- rbind(d91_clean, d96_clean) %&gt;% 
+  gather(age, value, `0`:`90`) %&gt;% # again, we gather the age variables
+  # now we have one observation for each district-census-age combination (long format)
+  spread(census, value) # finally, we come back to a wide format
 
 length(unique(ro1987$dist_nb)) # making sure we have 295 seats
 length(unique(ro1987$dist_name))
@@ -1145,18 +976,14 @@ check &lt;- ro2003 %&gt;%
 </div>
 <div id="merge-2006-census-2003-representation-order-with-2011-census-2003-representation-order-to-map-with-2008-parliament-data." class="section level4">
 <h4>Merge 2006 census (2003 Representation order) with 2011 census (2003 Representation order) to map with <em>2008 parliament data.</em></h4>
-<pre class="r"><code>d11_clean &lt;- d11_clean %&gt;% 
-  spread(age, value)
-ro2003_2 &lt;- rbind(d06_clean, d11_clean) %&gt;% 
-  gather(age, value, `0`:`100`) %&gt;% 
-  spread(census, value)
+<pre class="r"><code>d11_clean &lt;- d11_clean %&gt;% spread(age, value)
+ro2003_2 &lt;- rbind(d06_clean, d11_clean) %&gt;% gather(age, value, `0`:`100`) %&gt;% spread(census, 
+    value)
 
 length(unique(ro2003_2$dist_nb))
 length(unique(ro2003_2$dist_name))
 
-check &lt;- ro2003_2 %&gt;% 
-  filter(is.na(`2006`) == TRUE |
-           is.na(`2011`) == TRUE)</code></pre>
+check &lt;- ro2003_2 %&gt;% filter(is.na(`2006`) == TRUE | is.na(`2011`) == TRUE)</code></pre>
 <p>And map 2011 census (2003 Representation order) with <em>2011 parliament data.</em></p>
 </div>
 <div id="merge-2011-census-2013-representation-order-2016-census-2013-representation-order-to-map-with-2015-parliament-data." class="section level4">
@@ -1196,52 +1023,43 @@ check &lt;- ro2013 %&gt;%
 <h3>3) Interpolation of Values for Years In-Between Censuses</h3>
 <p>Election years sometimes (often) fall in-between censuses. We will interpolate the number of people in each age group to years between censuses, so that we have 'truer' values for election years. We will do this for each of the five datasets we merged in the previous step.</p>
 <p>First, we need to reshape the data from long to wide.</p>
-<pre class="r"><code>ro1987_imputation &lt;- ro1987 %&gt;% 
-  gather(year, value, `1991`:`1996`) %&gt;% 
-  mutate(year = as.integer(year)) %&gt;% 
-  mutate(ro = &quot;ro1987&quot;)
+<pre class="r"><code>ro1987_imputation &lt;- ro1987 %&gt;% gather(year, value, `1991`:`1996`) %&gt;% mutate(year = as.integer(year)) %&gt;% 
+    mutate(ro = &quot;ro1987&quot;)
 
-ro1996_imputation &lt;- ro1996 %&gt;% 
-  gather(year, value, `1996`:`2001`) %&gt;% 
-  mutate(year = as.integer(year)) %&gt;% 
-  mutate(ro = &quot;ro1996&quot;)
+ro1996_imputation &lt;- ro1996 %&gt;% gather(year, value, `1996`:`2001`) %&gt;% mutate(year = as.integer(year)) %&gt;% 
+    mutate(ro = &quot;ro1996&quot;)
 
-ro2003_imputation &lt;- ro2003 %&gt;% 
-  gather(year, value, `2001`:`2006`) %&gt;% 
-  mutate(year = as.integer(year)) %&gt;% 
-  mutate(ro = &quot;ro2003&quot;)
+ro2003_imputation &lt;- ro2003 %&gt;% gather(year, value, `2001`:`2006`) %&gt;% mutate(year = as.integer(year)) %&gt;% 
+    mutate(ro = &quot;ro2003&quot;)
 
-ro2003_2_imputation &lt;- ro2003_2 %&gt;% 
-  gather(year, value, `2006`:`2011`) %&gt;% 
-  mutate(year = as.integer(year)) %&gt;% 
-  mutate(ro = &quot;ro2003_2&quot;)
+ro2003_2_imputation &lt;- ro2003_2 %&gt;% gather(year, value, `2006`:`2011`) %&gt;% mutate(year = as.integer(year)) %&gt;% 
+    mutate(ro = &quot;ro2003_2&quot;)
 
-ro2013_imputation &lt;- ro2013 %&gt;% 
-  gather(year, value, `2011`:`2016`) %&gt;% 
-  mutate(year = as.integer(year)) %&gt;% 
-  mutate(ro = &quot;ro2013&quot;)
+ro2013_imputation &lt;- ro2013 %&gt;% gather(year, value, `2011`:`2016`) %&gt;% mutate(year = as.integer(year)) %&gt;% 
+    mutate(ro = &quot;ro2013&quot;)
 
-imputation_d &lt;- rbind(ro1987_imputation, ro1996_imputation, ro2003_imputation, ro2003_2_imputation, ro2013_imputation) # creating one big dataframe</code></pre>
+imputation_d &lt;- rbind(ro1987_imputation, ro1996_imputation, ro2003_imputation, ro2003_2_imputation, 
+    ro2013_imputation)  # creating one big dataframe</code></pre>
 <p>Then, we make the value imputation. This is a function I found online. It seems to work well, but suggestions as to how to do this otherwise would be more than welcome (is there a built-in function or package achieving this with fewer lines of code?)</p>
 <pre class="r"><code>expand_data &lt;- function(x) {
-  years &lt;- min(imputation_d$year):max(imputation_d$year)
-  btw_years &lt;- 1
-  grid &lt;- expand.grid(btw_year = btw_years, year = years)
-  x$btw_year &lt;- 1
-  merged &lt;- grid %&gt;% left_join(x, by = c(&#39;year&#39;, &#39;btw_year&#39;))
-  merged$dist_name &lt;- x$dist_name[1]
-  merged$dist_nb &lt;- x$dist_nb[1]
-  merged$age &lt;- x$age[1]
-  merged$ro &lt;- x$ro[1]
-  return(merged)
+    years &lt;- min(imputation_d$year):max(imputation_d$year)
+    btw_years &lt;- 1
+    grid &lt;- expand.grid(btw_year = btw_years, year = years)
+    x$btw_year &lt;- 1
+    merged &lt;- grid %&gt;% left_join(x, by = c(&quot;year&quot;, &quot;btw_year&quot;))
+    merged$dist_name &lt;- x$dist_name[1]
+    merged$dist_nb &lt;- x$dist_nb[1]
+    merged$age &lt;- x$age[1]
+    merged$ro &lt;- x$ro[1]
+    return(merged)
 }
 
 interpolate_data &lt;- function(data) {
-  xout &lt;- 1:nrow(data)
-  y &lt;- data$value
-  interpolation &lt;- approx(x = xout[!is.na(y)], y = y[!is.na(y)], xout = xout)
-  data$yhat &lt;- interpolation$y
-  return(data)
+    xout &lt;- 1:nrow(data)
+    y &lt;- data$value
+    interpolation &lt;- approx(x = xout[!is.na(y)], y = y[!is.na(y)], xout = xout)
+    data$yhat &lt;- interpolation$y
+    return(data)
 }
 
 expand_and_interpolate &lt;- function(x) interpolate_data(expand_data(x))
@@ -1250,11 +1068,8 @@ imputation_data &lt;- imputation_d %&gt;% group_by(dist_name, dist_nb, age, ro) 
 
 print(as.data.frame(imputation_data))
 
-imputation_data2 &lt;- imputation_data %&gt;% 
-  mutate(value = yhat) %&gt;% 
-  select(-yhat, -btw_year) %&gt;% 
-  drop_na() %&gt;% 
-  ungroup()
+imputation_data2 &lt;- imputation_data %&gt;% mutate(value = yhat) %&gt;% select(-yhat, -btw_year) %&gt;% 
+    drop_na() %&gt;% ungroup()
 
 table(imputation_data2$ro, imputation_data2$year)
 table(imputation_data2$dist_nb, imputation_data2$ro)
@@ -1276,34 +1091,47 @@ table(imputation_data2$age, imputation_data2$year)</code></pre>
          province = Province.Territory, 
          gender = Gender, 
          pid = Political.Affiliation,
-         type = str_replace_all(type, &quot;\\)&quot;, &quot;\\),&quot;), # add commas between each &quot;position (date)&quot; combination to be able to separate them afterwards
+         # add commas between each &quot;position (date)&quot; combination to be able to separate them afterwards
+         type = str_replace_all(type, &quot;\\)&quot;, &quot;\\),&quot;), 
          riding = str_replace_all(riding, &quot;\\)&quot;, &quot;\\),&quot;)) %&gt;% # same thing with ridings
   distinct(name, birth, gender, type, riding, province, pid) %&gt;% # keep only the variables I need
   separate_rows(type, sep = &quot;,&quot;, convert = TRUE) %&gt;%  # separate rows based on &quot;position (date)&quot;
   separate_rows(riding, sep = &quot;,&quot;, convert = TRUE) %&gt;% # again, separate rows based on &quot;riding (date)&quot;
   mutate_all(~ str_trim(., side = &quot;both&quot;)) %&gt;% # trim white spaces
-  mutate(type_date = str_extract_all(type, &quot;\\([^()]+\\)&quot;), # extract dates from &quot;position (date)&quot; combinations
+  # extract dates from &quot;position (date)&quot; and &quot;riding (date)&quot; combinations
+  mutate(type_date = str_extract_all(type, &quot;\\([^()]+\\)&quot;), 
          type_date = str_extract_all(type_date, &quot;(?&lt;=\\().+?(?=\\))&quot;), 
-         riding_date = str_extract_all(riding, &quot;\\([^()]+\\)&quot;), # extract dates from &quot;riding (date)&quot; combinations
+         riding_date = str_extract_all(riding, &quot;\\([^()]+\\)&quot;), 
          riding_date = str_extract_all(riding_date, &quot;(?&lt;=\\().+?(?=\\))&quot;)) %&gt;%  
   unnest(c(type_date, riding_date)) %&gt;% 
-  mutate(dist_name = str_remove_all(riding, &quot;\\(\\)&quot;), # clean-up riding names: remove what&#39;s in parentheses
+  mutate(dist_name = str_remove_all(riding, &quot;\\(\\)&quot;), # clean-up ridings: remove what&#39;s in parentheses
          dist_name = str_remove_all(dist_name, &quot;\\([^()]+\\)&quot;),
          dist_name = str_replace_all(dist_name, &quot;--&quot;, &quot;-&quot;)) %&gt;%  
   filter(!str_detect(type, &quot;Senator&quot;), # remove senators
-         type_date != 0 | riding_date != 0, # remove rows where dates are not identical: this is an important step, because we&#39;ve duplicated (our even tripled, quadrupled) the number of observations when separating the position and riding rows in the beginning. Now we want to keep only those where the dates match, because they&#39;re the &quot;real&quot; information on MPs: what position they were in period X, and in which riding.
+         type_date != 0 | riding_date != 0, 
+         # remove rows where dates are not identical: this is an important step, because we&#39;ve duplicated 
+         # (our even tripled, quadrupled) the number of observations when separating the position and 
+         # riding rows in the beginning. Now we want to keep only those where the dates match, because 
+         # they&#39;re the &quot;real&quot; information on MPs: what position they were in period X, and in which riding
          type_date == riding_date) %&gt;% 
-  separate(riding_date, sep = &quot;-&quot;, into = c(&quot;riding_start_date&quot;, &quot;riding_end_date&quot;)) %&gt;% # divide start and end dates of sittings
+  # divide start and end dates of sittings
+  separate(riding_date, sep = &quot;-&quot;, into = c(&quot;riding_start_date&quot;, &quot;riding_end_date&quot;)) %&gt;% 
   mutate_all(~ str_trim(., side = &quot;both&quot;)) %&gt;% # clean-up
   mutate(riding_start_date = ymd(riding_start_date), # transform to date format
          riding_end_date = ymd(riding_end_date), 
          riding_end_date = as.character(riding_end_date), 
-         riding_end_date = ifelse(is.na(riding_end_date) == TRUE, &quot;2020-04-01&quot;, riding_end_date), # add end date to those who are still serving
-         riding_end_date = as.Date(riding_end_date)) %&gt;% 
-  filter(riding_end_date &gt;= &quot;1988-11-21&quot; &amp; riding_start_date &lt;= &quot;1993-09-08&quot;) %&gt;%  # keep only those who stopped serving after the election (Nov 21, 1988) and those who started before the end of the 34th parliament (Sept 8, 1993) -- because otherwise there are observations for MPs who stayed in the same riding for a longer time than the 34th parliament
+         # add end date to those who are still serving
+         riding_end_date = ifelse(is.na(riding_end_date) == TRUE, &quot;2020-04-01&quot;, riding_end_date), 
+         riding_end_date = as.Date(riding_end_date)) %&gt;%
+  # keep only those who stopped serving after the election (Nov 21, 1988) and those who started before the 
+  # end of the 34th parliament (Sept 8, 1993) -- because otherwise there are observations for MPs who 
+  # stayed in the same riding for a longer time than the 34th parliament
+  filter(riding_end_date &gt;= &quot;1988-11-21&quot; &amp; riding_start_date &lt;= &quot;1993-09-08&quot;) %&gt;%  
   select(-type_date, -province, -riding, -type) %&gt;% # remove unecessary variables
   mutate(year = 1991) %&gt;% # I call it 1991 because this is the census we are going to merge it with
-  group_by(name) %&gt;% # next lines remove MP who are found twice because their district changed name during the 34th parliament (even if there hasn&#39;t been resdistricting)
+  # next lines remove MP who are found twice because their district changed name during the 34th 
+  # parliament (even if there hasn&#39;t been resdistricting)
+  group_by(name) %&gt;% 
   arrange(desc(riding_start_date), .by_group = TRUE) %&gt;% 
   slice(1) %&gt;% # I have to say, I love the arrange() and slice() functions
   ungroup()
@@ -1312,7 +1140,9 @@ length(unique(parl34$name))
 length(unique(parl34$dist_name)) 
 summary(parl34)
 
-# We could not easily clean up the party variable, because we have one observation per MP (so their party affiliation matches the caucus they were in during the 34th parliament). I haven&#39;t done so but you could use the code we&#39;ve already used to get rid of what is inside the parentheses.</code></pre>
+# We could not easily clean up the party variable, because we have one observation per MP (so their party 
+# affiliation matches the caucus they were in during the 34th parliament). I haven&#39;t done so but you 
+# could use the code we&#39;ve already used to get rid of what is inside the parentheses.</code></pre>
 </div>
 <div id="th-parliament-mps-1993-election-and-by-elections" class="section level4">
 <h4>35th Parliament MPs (1993 election and by-elections)</h4>
@@ -1816,52 +1646,46 @@ parl40 &lt;- parl40 %&gt;% mutate(dist_name = str_replace_all(dist_name, &quot; 
 parl41 &lt;- parl41 %&gt;% mutate(dist_name = str_replace_all(dist_name, &quot; &quot;, &quot;-&quot;))
 parl42 &lt;- parl42 %&gt;% mutate(dist_name = str_replace_all(dist_name, &quot; &quot;, &quot;-&quot;))</code></pre>
 <p>FINAL step: Merging it all together! I tried using <code>stringdist_left_join()</code> to make things quicker and match districts that had similar but no identical spelling, but I noticed it introduced some mistakes. For example, districts that included 'East', 'West', 'Southeast', 'Southwest' would be present more than once after merging. I want a dataset that's as clean as possible so I prefer doing it manually.</p>
-<pre class="r"><code>join34 &lt;- left_join(parl34, election88) # I also really love the join() functions (full_join, left_join, etc.). I had never used it that much before starting this project
+<pre class="r"><code>join34 &lt;- left_join(parl34, election88)  # I also really love the join() functions (full_join, left_join, etc.). I had never used it that much before starting this project
 length(unique(join34$dist_name))
-check &lt;- join34 %&gt;% filter(is.na(dist_nb)==TRUE)# it worked 
+check &lt;- join34 %&gt;% filter(is.na(dist_nb) == TRUE)  # it worked 
 
 join35 &lt;- left_join(parl35, election93)
 length(unique(join35$dist_name))
-check &lt;- join35 %&gt;% filter(is.na(dist_nb)==TRUE)# it worked 
+check &lt;- join35 %&gt;% filter(is.na(dist_nb) == TRUE)  # it worked 
 
 join36 &lt;- left_join(parl36, election97)
 length(unique(join36$dist_name))
-check &lt;- join36 %&gt;% filter(is.na(dist_nb)==TRUE) # it worked 
+check &lt;- join36 %&gt;% filter(is.na(dist_nb) == TRUE)  # it worked 
 
 join37 &lt;- left_join(parl37, election00)
 length(unique(join37$dist_name))
-check &lt;- join37 %&gt;% filter(is.na(dist_nb)==TRUE) # all good
+check &lt;- join37 %&gt;% filter(is.na(dist_nb) == TRUE)  # all good
 
 join38 &lt;- left_join(parl38, election04)
 length(unique(join38$dist_name))
-check &lt;- join38 %&gt;% filter(is.na(dist_nb)==TRUE) ## all good
+check &lt;- join38 %&gt;% filter(is.na(dist_nb) == TRUE)  ## all good
 
 join39 &lt;- left_join(parl39, election06)
 length(unique(join39$dist_name))
-check &lt;- join39 %&gt;% filter(is.na(dist_nb)==TRUE) # perfect
+check &lt;- join39 %&gt;% filter(is.na(dist_nb) == TRUE)  # perfect
 
 join40 &lt;- left_join(parl40, election08)
 length(unique(join40$dist_name))
-check &lt;- join40 %&gt;% filter(is.na(dist_nb)==TRUE) # yes!
+check &lt;- join40 %&gt;% filter(is.na(dist_nb) == TRUE)  # yes!
 
 join41 &lt;- left_join(parl41, election11)
 length(unique(join41$dist_name))
-check &lt;- join41 %&gt;% filter(is.na(dist_nb)==TRUE) # nearly there, one left
+check &lt;- join41 %&gt;% filter(is.na(dist_nb) == TRUE)  # nearly there, one left
 
 join42 &lt;- left_join(parl42, election15)
 length(unique(join42$dist_name))
-check &lt;- join42 %&gt;% filter(is.na(dist_nb)==TRUE) # yes yes yes
+check &lt;- join42 %&gt;% filter(is.na(dist_nb) == TRUE)  # yes yes yes
 
-d &lt;- full_join(join34, join35) %&gt;% 
-  full_join(join36) %&gt;% 
-  full_join(join37) %&gt;% 
-  full_join(join38) %&gt;% 
-  full_join(join39) %&gt;% 
-  full_join(join40) %&gt;% 
-  full_join(join41) %&gt;% 
-  full_join(join42)
+d &lt;- full_join(join34, join35) %&gt;% full_join(join36) %&gt;% full_join(join37) %&gt;% full_join(join38) %&gt;% 
+    full_join(join39) %&gt;% full_join(join40) %&gt;% full_join(join41) %&gt;% full_join(join42)
 
-write.csv(d, file = &quot;documentation/data/output/census_parliament.csv&quot;) # You can find the final product in the following path in the Github repo for this website.</code></pre>
+write.csv(d, file = &quot;documentation/data/output/census_parliament.csv&quot;)  # You can find the final product in the following path in the Github repo for this website.</code></pre>
 <p>And, that's a wrap! There is an observation for every MP elected in the House between 1988 and 2015. The year variable ranges from 1991 to 2015 because the 1991 census information is used for the 34th parliament (1988-1993), as we did not have census data prior to 1991. Other years correspond to the starting years of each Parliament (1993, 1997, 2000, 2004, 2006, 2008, 2015). Every age group is its own variable (columns), from 0 to 100. Note that the 1991 and 1996 censuses capped the age variable at 90 years old. People older than 90 were categorized as 90 year olds. This is why there are no values in the 91-100 variables for the years 1991 to 2000, which were filled in using the 1991 or 1996 censuses. Stay tuned for more updates on this dataset (more demographic variables)!</p>
 </div>
 </div>

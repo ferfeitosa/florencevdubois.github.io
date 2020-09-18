@@ -7,7 +7,7 @@ output:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(eval = F, echo = TRUE, results = "hide", message = FALSE)
+knitr::opts_chunk$set(eval = F, echo = TRUE, results = "hide", message = FALSE, tidy = T)
 ```
 
 ## Canadian Parliamentarians and Census Data, 1991-2015
@@ -76,11 +76,11 @@ I will not be walking you through each dataset recode because the steps are alwa
 d91 <- read.csv("documentation/data/input/1991census_1987order.csv", sep = ",")
 
 d91_clean <- d91 %>% 
-  rename(geo = Géographie, # just choosing more basic variable names
+  rename(geo = Géographie, # choosing more basic variable names
          sex = Sexe..3.) %>% 
-  filter(str_detect(geo, "[:alpha:]"), # we are keeping observations with names, because those without names are census subdivisions
-         str_detect(sex, "Total"), # we only keep the total values for sex -- we do not need to know the values for men and women separately
-         !str_detect(geo, "Newfoundland | Terre-Neuve"), # removing observations that are the provinces 
+  filter(str_detect(geo, "[:alpha:]"), # keeping observations with names (without are census subdivisions)
+         str_detect(sex, "Total"), # keeping total values for sex -- we don't need men and women 
+         !str_detect(geo, "Newfoundland | Terre-Neuve"), # removing obs that are the provinces 
          !str_detect(geo, "Prince Edward Island | Île-du-Prince-Édouard"),
          !str_detect(geo, "Nova Scotia | Nouvelle-Écosse"),
          !str_detect(geo, "New Brunswick | Nouveau-Brunswick"),
@@ -92,21 +92,27 @@ d91_clean <- d91 %>%
          !str_detect(geo, "British Columbia | Colombie-Britannique"),
          !str_detect(geo, "Yukon Territory"),
          !str_detect(geo, "Northwest Territories"),
-         !str_detect(geo, "Canada \\(00\\)")) %>% # removing the Canada observation 
-  gather(age, value, Total...Groupes.d.âge:X90.et.plus) %>% # transforming from wide to long
-  filter(!str_detect(age, "Total")) %>% # removing observations that are "age group totals"
-  mutate(age = str_remove(age, "X")) %>% # removing the "X" in front for each age category
-  dplyr::select(geo, age, value) # keeping the 3 variables of interest -- we now have a value (obs.) for each electoral district and age category
+         !str_detect(geo, "Canada \\(00\\)")) %>% # removing the Canada obs 
+  gather(age, value, Total...Groupes.d.âge:X90.et.plus) %>% # from wide to long
+  filter(!str_detect(age, "Total")) %>% # removing obs that are "age group totals"
+  mutate(age = str_remove(age, "X")) %>% # removing "X" in front of age categories
+  dplyr::select(geo, age, value) # keeping the 3 variables of interest 
+# we now have a value (obs.) for each electoral district and age category
 
-table(d91_clean$age) # just looking through the age variable to check what's remianing
+# just looking through the age variable to check what's remianing
+table(d91_clean$age) 
 
-d91_clean <- d91_clean %>% # people aged less than 1 year are identified as "less than one year" and people aged more than 90 are categorized as "more than 90"
-  mutate(age = ifelse(age == "Moins.de.1", 0, age), # recoding these two, so that "< 1 year" = "0" and "> 90" = "90"
-         age = ifelse(age == "90.et.plus", 90, age)) %>% 
-  filter(!str_detect(age, "\\.")) # age categories with periods in them correspond to age groups -- we don't want them, we only want single ages (except for the 90+ age group)
+# people <1 y.o. are identified as "less than one year" and people >90 y.o. 
+# are categorized as "more than 90"
+
+d91_clean <- d91_clean %>% 
+  mutate(age = ifelse(age == "Moins.de.1", 0, age), # recoding these two
+         age = ifelse(age == "90.et.plus", 90, age)) %>% # "< 1 year" = "0" and "> 90" = "90"
+  filter(!str_detect(age, "\\.")) # age categories with periods in them correspond to age groups
+# we don't want them, we only want single ages (except for the 90+ age group)
 
 table(d91_clean$age) # seems pretty good
-class(d91_clean$age) # I have a feeling this variable is not numeric, because I just cleaned up words in it
+class(d91_clean$age) # I have a feeling this variable is not numeric
 
 d91_clean <- d91_clean %>% 
   mutate(age = as.numeric(age)) # transforming it to numeric
@@ -116,30 +122,42 @@ class(d91_clean$age)
 
 d91_clean <- d91_clean %>% 
   mutate(census = 1991, # adding a variable telling us which census it is
-         ro = 1987) # adding a variable telling is which representation it is (I removed it later, turns out I did not need it)
+         ro = 1987) # adding a variable for the R.O. (I removed it later, turns out I did not need it)
 
-# Here's an important step. The "geo" variable has the names of district _and_ their numbers (in parentheses). 
-# I want to keep these two pieces of information, but in two different variables, because I may need one of the other
-# for merging purposes later on. I will therefore split this variable into two (dist_name and dist_nb), then
-# clean them up (especially district names).
+# Here's an important step. The "geo" variable has the names of district _and_ their numbers 
+# (in parentheses). I want to keep these two pieces of information, but in two different 
+# variables, because I may need one of the other for merging purposes later on. I will 
+# therefore split this variable into two (dist_name and dist_nb), then clean them up 
+# (especially district names).
+
 d91_clean <- d91_clean %>% 
-  mutate(dist_name = str_remove_all(geo, "[0-9]+"), # creating the "dist_name" variable by removing numbers from the "geo" variable
+  mutate(dist_name = str_remove_all(geo, "[0-9]+"), # removing digits from geo to create "dist_name" 
          dist_name = str_remove_all(dist_name, "\\(\\)"), # removing the empty parentheses
-         dist_name = str_remove_all(dist_name, "\\([^()]+\\)"), # there is still information in parentheses (the district names' translation), we want to get rid of that
-         dist_nb = str_extract_all(geo, "\\([^()]+\\)")) %>% # creating the "dist_nb" variable by extracting what's in parentheses from the "geo" variable (I could not only extract digits because there are other digits, which have nothing to do with the district numbers)
+         # there is still information in parentheses (the district names' translation), we want to 
+         # get rid of that
+         dist_name = str_remove_all(dist_name, "\\([^()]+\\)"), 
+         # creating the "dist_nb" variable by extracting what's in parentheses from the "geo" variable 
+         # (I could not only extract digits because there are other digits, which have nothing to do 
+         #with the district numbers)
+         dist_nb = str_extract_all(geo, "\\([^()]+\\)")) %>% 
   unnest(dist_nb) %>% # separating the information we extracted from parentheses
   filter(str_detect(dist_nb, "-", negate = TRUE), 
-         str_detect(dist_nb, "[:alpha:]", negate = TRUE)) %>% # remove observations where the district number is not only a number
-  mutate(dist_nb = str_extract_all(dist_nb, "(?<=\\().+?(?=\\))")) %>% # again, extract the numbers from their parenteses
-  unnest(dist_nb) %>% # I don't think this line and the next are necessary in 1991, but in other years it is 
+         # remove obs where the district nb is not only a number
+         str_detect(dist_nb, "[:alpha:]", negate = TRUE)) %>% 
+  # again, extract digits from their parenteses
+  mutate(dist_nb = str_extract_all(dist_nb, "(?<=\\().+?(?=\\))")) %>% 
+  # I don't think the next line and the next are necessary in 1991, but in other years it is
+  unnest(dist_nb) %>%  
   filter(str_detect(dist_nb, " ", negate = TRUE)) %>% 
-  mutate(dist_name = str_replace_all(dist_name, " - ", "-"), # the next 5 lines are to make sure that district names have the same spelling (or almost) in every census recode
+  mutate(dist_name = str_replace_all(dist_name, " - ", "-"), 
+         # the next lines make sure that district names have the same spelling in every census recode
          dist_name = str_replace_all(dist_name, " -", "-"),
-         dist_name = str_replace_all(dist_name, "- ", "-"), # this could probably be done in a more tidy way
+         dist_name = str_replace_all(dist_name, "- ", "-"), # this could probably be more tidy 
          dist_name = str_replace_all(dist_name, "--", "-"),
          dist_name = str_trim(dist_name, side = "both"),
-         dist_name = ifelse(dist_name == "Timiskaming", "Timiskaming-French River", dist_name)) %>% # Timiskaming is called Timiskaming French River in the 1996 census (first back-and-forth!)
-  select(-geo, -ro) # removing unecessary variables -- we want every data frames to have the same variables
+          # Timiskaming is called Timiskaming French River in the 1996 census (first back-and-forth!)
+         dist_name = ifelse(dist_name == "Timiskaming", "Timiskaming-French River", dist_name)) %>% 
+  select(-geo, -ro) # we want every data frames to have the same variables
 
 length(unique(d91_clean$dist_nb)) # just making sure we have 295 seats
 length(unique(d91_clean$dist_name)) # all good
@@ -729,14 +747,17 @@ Here, we will merge censuses that use the same representation orders. For exampl
 #### Merge 1991 census (1987 Representation order) with 1996 census (1987 Representation order) to map with _1993 parliament data._
 ```{r match ro1987}
 
-d91_clean <- d91_clean %>% # we want to have one observation per electoral district, with variables for each age category
+# we want to have one observation per electoral district, with variables for each age category
+d91_clean <- d91_clean %>% 
   spread(age, value)
 d96_clean <- d96_clean %>% 
   spread(age, value)
 
-ro1987 <- rbind(d91_clean, d96_clean) %>% # we then bind the 2 dataframes (vertically, one on top of the other)
-  gather(age, value, `0`:`90`) %>% # again, we gather the age variables, now we have one observation for each district-census-age combination (long format)
-  spread(census, value) # finally, we come back to a wide format by spreading the values for each age category
+# we then bind the 2 dataframes (vertically, one on top of the other)
+ro1987 <- rbind(d91_clean, d96_clean) %>% 
+  gather(age, value, `0`:`90`) %>% # again, we gather the age variables
+  # now we have one observation for each district-census-age combination (long format)
+  spread(census, value) # finally, we come back to a wide format
 
 length(unique(ro1987$dist_nb)) # making sure we have 295 seats
 length(unique(ro1987$dist_name))
@@ -996,34 +1017,47 @@ parl34 <-  read.csv("documentation/data/input/parl_34.csv", sep = ";") %>%
          province = Province.Territory, 
          gender = Gender, 
          pid = Political.Affiliation,
-         type = str_replace_all(type, "\\)", "\\),"), # add commas between each "position (date)" combination to be able to separate them afterwards
+         # add commas between each "position (date)" combination to be able to separate them afterwards
+         type = str_replace_all(type, "\\)", "\\),"), 
          riding = str_replace_all(riding, "\\)", "\\),")) %>% # same thing with ridings
   distinct(name, birth, gender, type, riding, province, pid) %>% # keep only the variables I need
   separate_rows(type, sep = ",", convert = TRUE) %>%  # separate rows based on "position (date)"
   separate_rows(riding, sep = ",", convert = TRUE) %>% # again, separate rows based on "riding (date)"
   mutate_all(~ str_trim(., side = "both")) %>% # trim white spaces
-  mutate(type_date = str_extract_all(type, "\\([^()]+\\)"), # extract dates from "position (date)" combinations
+  # extract dates from "position (date)" and "riding (date)" combinations
+  mutate(type_date = str_extract_all(type, "\\([^()]+\\)"), 
          type_date = str_extract_all(type_date, "(?<=\\().+?(?=\\))"), 
-         riding_date = str_extract_all(riding, "\\([^()]+\\)"), # extract dates from "riding (date)" combinations
+         riding_date = str_extract_all(riding, "\\([^()]+\\)"), 
          riding_date = str_extract_all(riding_date, "(?<=\\().+?(?=\\))")) %>%  
   unnest(c(type_date, riding_date)) %>% 
-  mutate(dist_name = str_remove_all(riding, "\\(\\)"), # clean-up riding names: remove what's in parentheses
+  mutate(dist_name = str_remove_all(riding, "\\(\\)"), # clean-up ridings: remove what's in parentheses
          dist_name = str_remove_all(dist_name, "\\([^()]+\\)"),
          dist_name = str_replace_all(dist_name, "--", "-")) %>%  
   filter(!str_detect(type, "Senator"), # remove senators
-         type_date != 0 | riding_date != 0, # remove rows where dates are not identical: this is an important step, because we've duplicated (our even tripled, quadrupled) the number of observations when separating the position and riding rows in the beginning. Now we want to keep only those where the dates match, because they're the "real" information on MPs: what position they were in period X, and in which riding.
+         type_date != 0 | riding_date != 0, 
+         # remove rows where dates are not identical: this is an important step, because we've duplicated 
+         # (our even tripled, quadrupled) the number of observations when separating the position and 
+         # riding rows in the beginning. Now we want to keep only those where the dates match, because 
+         # they're the "real" information on MPs: what position they were in period X, and in which riding
          type_date == riding_date) %>% 
-  separate(riding_date, sep = "-", into = c("riding_start_date", "riding_end_date")) %>% # divide start and end dates of sittings
+  # divide start and end dates of sittings
+  separate(riding_date, sep = "-", into = c("riding_start_date", "riding_end_date")) %>% 
   mutate_all(~ str_trim(., side = "both")) %>% # clean-up
   mutate(riding_start_date = ymd(riding_start_date), # transform to date format
          riding_end_date = ymd(riding_end_date), 
          riding_end_date = as.character(riding_end_date), 
-         riding_end_date = ifelse(is.na(riding_end_date) == TRUE, "2020-04-01", riding_end_date), # add end date to those who are still serving
-         riding_end_date = as.Date(riding_end_date)) %>% 
-  filter(riding_end_date >= "1988-11-21" & riding_start_date <= "1993-09-08") %>%  # keep only those who stopped serving after the election (Nov 21, 1988) and those who started before the end of the 34th parliament (Sept 8, 1993) -- because otherwise there are observations for MPs who stayed in the same riding for a longer time than the 34th parliament
+         # add end date to those who are still serving
+         riding_end_date = ifelse(is.na(riding_end_date) == TRUE, "2020-04-01", riding_end_date), 
+         riding_end_date = as.Date(riding_end_date)) %>%
+  # keep only those who stopped serving after the election (Nov 21, 1988) and those who started before the 
+  # end of the 34th parliament (Sept 8, 1993) -- because otherwise there are observations for MPs who 
+  # stayed in the same riding for a longer time than the 34th parliament
+  filter(riding_end_date >= "1988-11-21" & riding_start_date <= "1993-09-08") %>%  
   select(-type_date, -province, -riding, -type) %>% # remove unecessary variables
   mutate(year = 1991) %>% # I call it 1991 because this is the census we are going to merge it with
-  group_by(name) %>% # next lines remove MP who are found twice because their district changed name during the 34th parliament (even if there hasn't been resdistricting)
+  # next lines remove MP who are found twice because their district changed name during the 34th 
+  # parliament (even if there hasn't been resdistricting)
+  group_by(name) %>% 
   arrange(desc(riding_start_date), .by_group = TRUE) %>% 
   slice(1) %>% # I have to say, I love the arrange() and slice() functions
   ungroup()
@@ -1032,7 +1066,9 @@ length(unique(parl34$name))
 length(unique(parl34$dist_name)) 
 summary(parl34)
 
-# We could not easily clean up the party variable, because we have one observation per MP (so their party affiliation matches the caucus they were in during the 34th parliament). I haven't done so but you could use the code we've already used to get rid of what is inside the parentheses.
+# We could not easily clean up the party variable, because we have one observation per MP (so their party 
+# affiliation matches the caucus they were in during the 34th parliament). I haven't done so but you 
+# could use the code we've already used to get rid of what is inside the parentheses.
 ```
 
 #### 35th Parliament MPs (1993 election and by-elections)
@@ -1432,6 +1468,7 @@ We will merge everything together by _year_ and _district name_. Hopefully, the 
 census_for_district <- imputation_data2 %>% 
   filter(year == 1991 | year == 1993 | year == 1997 | year == 2000 | year == 2004 |
            year == 2006 | year == 2008 | year == 2011 | year == 2015) %>% # keeping election years
+  # keeping election years for the appropriate representation orders
   filter(year ==  1991 & ro == "ro1987" | 
          year ==  1993 & ro == "ro1987" |
          year ==  1997 & ro == "ro1996" |
@@ -1440,26 +1477,30 @@ census_for_district <- imputation_data2 %>%
          year ==  2006 & ro == "ro2003_2" |
          year ==  2008 & ro == "ro2003_2" |
          year ==  2011 & ro == "ro2003_2" |
-         year ==  2015 & ro == "ro2013") %>% # keeping election years for the appropriate representation orders
+         year ==  2015 & ro == "ro2013") %>% 
   select(year, dist_name, dist_nb, age, value) %>% 
   spread(age, value) %>% # from long to wide
-  separate(dist_name, sep = "\\/", into = c("dist_name", "dist_name_fr")) %>% # removing french names that are sometimes added, as such: dist_name_end/dist_name_fr
+   # removing french names that are sometimes added, as such: dist_name_end/dist_name_fr
+  separate(dist_name, sep = "\\/", into = c("dist_name", "dist_name_fr")) %>%
   select(-dist_name_fr) %>% 
   mutate(dist_name = str_replace_all(dist_name, "  ", " "), # removing extra space in-between words
-         dist_name = str_replace_all(dist_name, " ", "-")) # making names as similar as possible to candidates data
+         # making names as similar as possible to candidates data
+         dist_name = str_replace_all(dist_name, " ", "-")) 
 
 # We will be merging each parliament dataframe individually to keep track of potential mistakes
-# I mentioned earlier that choosing the 1996 district names upon merging censuses could create problems later on. 
-# Turns out the 2000 census data is not so easily merged with the parliament data because the district names are not all the same. 
-# I have to manually recode the names of many districts in 2000.
-# After trying to merge once, I found other spelling discrepancies. This is why I am re-spelling some districts here.
-# This is a very manual task but I could not find an alternative.
-# So far things have run relatively smoothly, so I am not too frustrated by this task.
+# I mentioned earlier that choosing the 1996 district names upon merging censuses could create 
+# problems later on.Turns out the 2000 census data is not so easily merged with the parliament 
+# data because the district names are not all the same. I have to manually recode the names 
+# of many districts in 2000. After trying to merge once, I found other spelling discrepancies. 
+# This is why I am re-spelling some districts here. This is a very manual task but I could 
+# not find an alternative. So far things have run relatively smoothly, so I am not too 
+# frustrated by this task.
 election88 <- census_for_district %>% 
   filter(year == 1991) %>% 
   mutate(dist_name = recode(dist_name, "Laval-Est" = "Laval-East"),
+         # these are basically lost in translation
          dist_name = recode(dist_name, "Laval-Ouest" = "Laval-West"),
-         dist_name = recode(dist_name, "Mont-Royal" = "Mount-Royal"), # these are basically lost in translation
+         dist_name = recode(dist_name, "Mont-Royal" = "Mount-Royal"), 
          dist_name = recode(dist_name, "Capilano-Howe-Sound" = "Capilano")) 
 
 election93 <- census_for_district %>% 
@@ -1559,7 +1600,8 @@ parl42 <- parl42 %>% mutate(dist_name = str_replace_all(dist_name, " ", "-"))
 FINAL step: Merging it all together! I tried using `stringdist_left_join()` to make things quicker and match districts that had similar but no identical spelling, but I noticed it introduced some mistakes. For example, districts that included 'East', 'West', 'Southeast', 'Southwest' would be present more than once after merging. I want a dataset that's as clean as possible so I prefer doing it manually.
 
 ```{r}
-join34 <- left_join(parl34, election88) # I also really love the join() functions (full_join, left_join, etc.). I had never used it that much before starting this project
+# I also really love the join() functions (full_join, left_join, etc.). I had never used it that much before starting this project
+join34 <- left_join(parl34, election88) 
 length(unique(join34$dist_name))
 check <- join34 %>% filter(is.na(dist_nb)==TRUE)# it worked 
 
