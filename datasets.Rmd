@@ -10,7 +10,7 @@ output:
 knitr::opts_chunk$set(eval = F, echo = TRUE, results = "hide", message = FALSE)
 ```
 
-## Canadian Demographics by Electoral Riding (1991-2015)
+## Canadian Parliamentarians and Census Data, 1991-2015
 
 Note: I did this work as part of my doctoral dissertation and I am currently using the dataset in a working paper. Here's how to cite the data when using it in your own work: Vallée-Dubois, Florence. (2020). Canadian Parliamentarians and Census Data, 1991-2015 [data file]. 
 
