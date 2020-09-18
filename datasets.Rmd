@@ -145,7 +145,7 @@ length(unique(d91_clean$dist_nb)) # just making sure we have 295 seats
 length(unique(d91_clean$dist_name)) # all good
 ```
 
-After having done the first one, most of the work is done, but we have to pay attention to at least one thing: the way other raw datasets are organized. Statistics Canada did not only change the data formats, they also changed the names of variables, how district names and number were compiled, etc. So we won't always to able to run _exactly_ the same code --- a few changes will be necessary here and there.
+Most of the work is now done, but we have to pay attention to at least one thing when recoding other censuses: other raw datasets are not always organized the same way. Statistics Canada did not only change the data formats, they also changed the names of variables, how district names and number are compiled, etc. So we won't always to able to run _exactly_ the same code --- a few changes will be necessary here and there.
 
 #### 1996 census (1987 Representation order)
 
@@ -979,9 +979,11 @@ What to do with post-2016? We cannot make interpolate values for these years bec
 
 ### 4) Cleaning-Up the Parliament (MP) Data
 
-We will merge the names of districts in each representation order with the names of districts in each Parliament (34th to 42nd). The goal is to build a dataset of electoral ridings in each election year associated with the names and birth dates of Members of each parliament _and_ the demographic distribution of the population in each district.
+We will match district names from the censuses with district names from the parliamentary data (34th to 42nd). The goal is to build a dataset of electoral ridings in each election year associated with the names of Members of each parliament _and_ the demographic distribution of the population in each district.
 
-I downloaded each Parliament datasets from the [Library of Parliament website](https://lop.parl.ca/sites/ParlInfo/default/en_CA/People/parliamentarians). I could have extracted all Parliaments at once, but wanted to do it one by one to make sure the clean-up process ran smoothly. The data is in somewhat of a weird format: each parliamentarian takes a different row, with variables (columns) for his/her date of birth, type of work (MP or Senator), constituency(ies) (with accompanying dates), party affiliation(s), etc. What is most interesting to me is the MP's name and constituency. I have to separate the constituency column, because it contains all the constituencies each MP has ever served in. My goal is to (1) divide this column to find all constituencies a given MP has served, then (2) delete those that do not correspond to the Parliament I'm looking at. For example, for the 35th Parliament, I keep constituencies where members served between 25 October 1993 and 27 April 1997 only. The process is pretty much the same for each Parliament, so the code is commented for the first one only. 
+I downloaded the parliamentary data from the [Library of Parliament website](https://lop.parl.ca/sites/ParlInfo/default/en_CA/People/parliamentarians). I could have extracted all Parliaments at once, but I preferred doing it one by one to make sure the clean-up process ran smoothly. The data is in somewhat of a weird format: each parliamentarian is its own observation (rows), with variables (columns) for his/her date of birth, type of work (MP or Senator), constituency(ies) (with accompanying dates), party affiliation(s), etc. What is most interesting to me is the MP's name and riding. 
+
+I have to divide the constituency column, because it contains all the constituencies each MP has ever served in. My goal is to (1) divide this column to find all constituencies a given MP has been elected in, then (2) delete those that do not correspond to the Parliament I'm looking at. For example, for the 35th Parliament, I keep constituencies where members served between 25 October 1993 and 27 April 1997 only. The process is pretty much the same for each Parliament, so the code is commented for the first one only. 
 
 #### 34th Parliament MPs (1988 election and by-elections)
 
@@ -994,41 +996,43 @@ parl34 <-  read.csv("documentation/data/input/parl_34.csv", sep = ";") %>%
          province = Province.Territory, 
          gender = Gender, 
          pid = Political.Affiliation,
-         type = str_replace_all(type, "\\)", "\\),"), # add commas to be able to separate the rows 
-         riding = str_replace_all(riding, "\\)", "\\),")) %>% # again
-  distinct(name, birth, gender, type, riding, province, pid) %>% # remove unecessary variables
-  separate_rows(type, sep = ",", convert = TRUE) %>%  # separate rows
-  separate_rows(riding, sep = ",", convert = TRUE) %>% 
-  mutate_all(~ str_trim(., side = "both")) %>% # clean-up
-  mutate(type_date = str_extract_all(type, "\\([^()]+\\)"), # extract dates from positions
+         type = str_replace_all(type, "\\)", "\\),"), # add commas between each "position (date)" combination to be able to separate them afterwards
+         riding = str_replace_all(riding, "\\)", "\\),")) %>% # same thing with ridings
+  distinct(name, birth, gender, type, riding, province, pid) %>% # keep only the variables I need
+  separate_rows(type, sep = ",", convert = TRUE) %>%  # separate rows based on "position (date)"
+  separate_rows(riding, sep = ",", convert = TRUE) %>% # again, separate rows based on "riding (date)"
+  mutate_all(~ str_trim(., side = "both")) %>% # trim white spaces
+  mutate(type_date = str_extract_all(type, "\\([^()]+\\)"), # extract dates from "position (date)" combinations
          type_date = str_extract_all(type_date, "(?<=\\().+?(?=\\))"), 
-         riding_date = str_extract_all(riding, "\\([^()]+\\)"), # extract dates from ridings
+         riding_date = str_extract_all(riding, "\\([^()]+\\)"), # extract dates from "riding (date)" combinations
          riding_date = str_extract_all(riding_date, "(?<=\\().+?(?=\\))")) %>%  
   unnest(c(type_date, riding_date)) %>% 
-  mutate(dist_name = str_remove_all(riding, "\\(\\)"), # clean-up riding names
+  mutate(dist_name = str_remove_all(riding, "\\(\\)"), # clean-up riding names: remove what's in parentheses
          dist_name = str_remove_all(dist_name, "\\([^()]+\\)"),
          dist_name = str_replace_all(dist_name, "--", "-")) %>%  
   filter(!str_detect(type, "Senator"), # remove senators
-         type_date != 0 | riding_date != 0, # remove rows where dates are not identical
+         type_date != 0 | riding_date != 0, # remove rows where dates are not identical: this is an important step, because we've duplicated (our even tripled, quadrupled) the number of observations when separating the position and riding rows in the beginning. Now we want to keep only those where the dates match, because they're the "real" information on MPs: what position they were in period X, and in which riding.
          type_date == riding_date) %>% 
-  separate(riding_date, sep = "-", into = c("riding_start_date", "riding_end_date")) %>% # divide start and end dates
+  separate(riding_date, sep = "-", into = c("riding_start_date", "riding_end_date")) %>% # divide start and end dates of sittings
   mutate_all(~ str_trim(., side = "both")) %>% # clean-up
-  mutate(riding_start_date = ymd(riding_start_date), # transform  to  date format
-         riding_end_date = ymd(riding_end_date), # again
-         riding_end_date = as.character(riding_end_date), # add end date to those who are still serving
-         riding_end_date = ifelse(is.na(riding_end_date) == TRUE, "2020-04-01", riding_end_date), 
+  mutate(riding_start_date = ymd(riding_start_date), # transform to date format
+         riding_end_date = ymd(riding_end_date), 
+         riding_end_date = as.character(riding_end_date), 
+         riding_end_date = ifelse(is.na(riding_end_date) == TRUE, "2020-04-01", riding_end_date), # add end date to those who are still serving
          riding_end_date = as.Date(riding_end_date)) %>% 
-  filter(riding_end_date >= "1988-11-21" & riding_start_date <= "1993-09-08") %>%  # keep only those that end after the election (Nov 21, 1988) and those that start before the end of the 34th parliament (Sept 8, 1993)
+  filter(riding_end_date >= "1988-11-21" & riding_start_date <= "1993-09-08") %>%  # keep only those who stopped serving after the election (Nov 21, 1988) and those who started before the end of the 34th parliament (Sept 8, 1993) -- because otherwise there are observations for MPs who stayed in the same riding for a longer time than the 34th parliament
   select(-type_date, -province, -riding, -type) %>% # remove unecessary variables
-  mutate(year = 1991) %>% # I call it 1991 because that's when the census was done
+  mutate(year = 1991) %>% # I call it 1991 because this is the census we are going to merge it with
   group_by(name) %>% # next lines remove MP who are found twice because their district changed name during the 34th parliament (even if there hasn't been resdistricting)
   arrange(desc(riding_start_date), .by_group = TRUE) %>% 
-  slice(1) %>% 
+  slice(1) %>% # I have to say, I love the arrange() and slice() functions
   ungroup()
 
 length(unique(parl34$name))
 length(unique(parl34$dist_name)) 
 summary(parl34)
+
+# We could not easily clean up the party variable, because we have one observation per MP (so their party affiliation matches the caucus they were in during the 34th parliament). I haven't done so but you could use the code we've already used to get rid of what is inside the parentheses.
 ```
 
 #### 35th Parliament MPs (1993 election and by-elections)
@@ -1419,16 +1423,16 @@ length(unique(parl42$dist_name))
 
 We now have: 
 
-- in one single dataset, the population's age composition in each district between 1991 and 2016 (Census data), and 
-- information on MPs, their district and their date of birth in another dataset (Parliament data).
+- in one dataframe: the population's age composition in each district between 1991 and 2016 (Census data), and 
+- information on MPs in 9 dataframes, one of each Parliament since the 34th (parliamentary data).
 
-We will merge these information together by year and district name. Hopefully, the district names in the two sources will match (they won't, but it's not too bad, don't worry). First, let's keep only the census data we need, i.e. the election years. I know some MPs were elected in-between elections (by-elections), but to make things simpler we will match them with the population data of the previous general election (i.e. the start date of the parliament they are serving in).
+We will merge everything together by _year_ and _district name_. Hopefully, the district names in the two sources will match (they won't, but it's not too bad, don't worry). First, let's keep only the census data we need, i.e. election years. I know some MPs were elected in-between elections (by-elections), but to make things simpler we will match them with the population data of the previous general election (i.e. the start date of the parliament they are serving in).
 
 ```{r}
 census_for_district <- imputation_data2 %>% 
   filter(year == 1991 | year == 1993 | year == 1997 | year == 2000 | year == 2004 |
-           year == 2006 | year == 2008 | year == 2011 | year == 2015) %>% 
-  filter(year ==  1991 & ro == "ro1987" |
+           year == 2006 | year == 2008 | year == 2011 | year == 2015) %>% # keeping election years
+  filter(year ==  1991 & ro == "ro1987" | 
          year ==  1993 & ro == "ro1987" |
          year ==  1997 & ro == "ro1996" |
          year ==  2000 & ro == "ro1996" |
@@ -1436,33 +1440,33 @@ census_for_district <- imputation_data2 %>%
          year ==  2006 & ro == "ro2003_2" |
          year ==  2008 & ro == "ro2003_2" |
          year ==  2011 & ro == "ro2003_2" |
-         year ==  2015 & ro == "ro2013") %>% # keep good election years and representation orders
+         year ==  2015 & ro == "ro2013") %>% # keeping election years for the appropriate representation orders
   select(year, dist_name, dist_nb, age, value) %>% 
-  spread(age, value) %>% 
+  spread(age, value) %>% # from long to wide
   separate(dist_name, sep = "\\/", into = c("dist_name", "dist_name_fr")) %>% # removing french names that are sometimes added, as such: dist_name_end/dist_name_fr
   select(-dist_name_fr) %>% 
-  mutate(dist_name = str_replace_all(dist_name, "  ", " "), # remove extra space in-between words
-         dist_name = str_replace_all(dist_name, " ", "-")) # make names as similar as possible to candidates data
+  mutate(dist_name = str_replace_all(dist_name, "  ", " "), # removing extra space in-between words
+         dist_name = str_replace_all(dist_name, " ", "-")) # making names as similar as possible to candidates data
 
-# I will be merging each parliament dataset individually to keep track of potential mistakes
-# I mentioned earlier that choosing the 1996 distirct names upon merging censuses could create problems later on. 
+# We will be merging each parliament dataframe individually to keep track of potential mistakes
+# I mentioned earlier that choosing the 1996 district names upon merging censuses could create problems later on. 
 # Turns out the 2000 census data is not so easily merged with the parliament data because the district names are not all the same. 
 # I have to manually recode the names of many districts in 2000.
-# After trying to merge once, other discrepancies in spelling turned out. This is why I am re-spelling some districts here.
-# This is a very manual task but I have not found any alternative.
+# After trying to merge once, I found other spelling discrepancies. This is why I am re-spelling some districts here.
+# This is a very manual task but I could not find an alternative.
 # So far things have run relatively smoothly, so I am not too frustrated by this task.
 election88 <- census_for_district %>% 
   filter(year == 1991) %>% 
   mutate(dist_name = recode(dist_name, "Laval-Est" = "Laval-East"),
          dist_name = recode(dist_name, "Laval-Ouest" = "Laval-West"),
-         dist_name = recode(dist_name, "Mont-Royal" = "Mount-Royal"),
-         dist_name = recode(dist_name, "Capilano-Howe-Sound" = "Capilano"))
+         dist_name = recode(dist_name, "Mont-Royal" = "Mount-Royal"), # these are basically lost in translation
+         dist_name = recode(dist_name, "Capilano-Howe-Sound" = "Capilano")) 
 
 election93 <- census_for_district %>% 
   filter(year == 1993) %>% 
   mutate(dist_name = recode(dist_name, "Laval-Est" = "Laval-East"),
          dist_name = recode(dist_name, "Laval-Ouest" = "Laval-West"),
-         dist_name = recode(dist_name, "Mont-Royal" = "Mount-Royal"))
+         dist_name = recode(dist_name, "Mont-Royal" = "Mount-Royal")) 
 
 election97 <- census_for_district %>% 
   filter(year == 1997) %>% 
@@ -1538,7 +1542,8 @@ election15 <- census_for_district %>%
   mutate(dist_name = recode(dist_name, "Beauport-Côte-de-Beaupré-Île-d'Orléans-Charlevoix" = "Beauport-Côte-de-Beaupré-Île-D’Orléans-Charlevoix"),
          dist_name = recode(dist_name, "Montmagny-L'Islet-Kamouraska-Rivière-du-Loup" = "Montmagny-L’Islet-Kamouraska-Rivière-du-Loup"))
 
-# make district names as similar as possible to districts in the census data
+# making district names as similar as possible to districts in the census data
+# I added dashes everywhere, because sometimes there were dashes, sometimes not.
 parl34 <- parl34 %>% mutate(dist_name = str_replace_all(dist_name, " ", "-"))
 parl35 <- parl35 %>% mutate(dist_name = str_replace_all(dist_name, " ", "-"))
 parl36 <- parl36 %>% mutate(dist_name = str_replace_all(dist_name, " ", "-"))
@@ -1551,10 +1556,10 @@ parl42 <- parl42 %>% mutate(dist_name = str_replace_all(dist_name, " ", "-"))
 
 ```
 
-FINAL step: Merging it all together! I tried using `stringdist_left_join()` to make things quicker and match districts that were closely-spelled, but I noticed it introduced some mistakes. For example, districts that included 'East', 'West', 'Southeast', 'Southwest' would be present more than once after merging. I want a dataset that's as clean as possible so I prefer doing it manually and renaming the districts that are spelled differently.
+FINAL step: Merging it all together! I tried using `stringdist_left_join()` to make things quicker and match districts that had similar but no identical spelling, but I noticed it introduced some mistakes. For example, districts that included 'East', 'West', 'Southeast', 'Southwest' would be present more than once after merging. I want a dataset that's as clean as possible so I prefer doing it manually.
 
 ```{r}
-join34 <- left_join(parl34, election88)
+join34 <- left_join(parl34, election88) # I also really love the join() functions (full_join, left_join, etc.). I had never used it that much before starting this project
 length(unique(join34$dist_name))
 check <- join34 %>% filter(is.na(dist_nb)==TRUE)# it worked 
 
@@ -1602,4 +1607,4 @@ d <- full_join(join34, join35) %>%
 write.csv(d, file = "documentation/data/output/census_parliament.csv") # You can find the final product in the following path in the Github repo for this website.
 ```
 
-And, that's a wrap! There is an observation for every MP elected in the House between 1988 and 2015. The year variable ranges from 1991 to 2015 because the 1991 census information is used for the 34th parliament (1988-1993), as we did not have census data prior to 1991. Other years correspond to the starting years of each Parliament (1993, 1997, 2000, 2004, 2006, 2008, 2015). Every age group is its own variable (columns), from 0 to 100. Note that the 1991 and 1996 censuses capped the age groups at 90 years old. People older than 90 were categorized as 90 year olds. This is why there are no values in the 90-100 variables for the years 1991 to 2000, which were all imputed using the 1991 or 1996 censuses. The party affiliation variable is not clean yet, but it's on my to-do list, so stay tuned!
+And, that's a wrap! There is an observation for every MP elected in the House between 1988 and 2015. The year variable ranges from 1991 to 2015 because the 1991 census information is used for the 34th parliament (1988-1993), as we did not have census data prior to 1991. Other years correspond to the starting years of each Parliament (1993, 1997, 2000, 2004, 2006, 2008, 2015). Every age group is its own variable (columns), from 0 to 100. Note that the 1991 and 1996 censuses capped the age variable at 90 years old. People older than 90 were categorized as 90 year olds. This is why there are no values in the 91-100 variables for the years 1991 to 2000, which were filled in using the 1991 or 1996 censuses. Stay tuned for more updates on this dataset (more demographic variables)!
