@@ -3,3 +3,9 @@
 .RData
 .Ruserdata
 documentation/flipbook
+1.census-recode.R
+2.ro-merge.R
+3.interpolation.R
+4.parliament-recode.R
+5.final-merge-prep.R
+6.final-merge.R

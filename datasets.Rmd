@@ -951,12 +951,6 @@ ro2013_imputation <- ro2013 %>%
   mutate(year = as.integer(year)) %>% 
   mutate(ro = "ro2013")
 
-# write.csv(ro1996_imputation, file = "documentation/flipbook/dataframes/ro1987_imputation.csv")
-# write.csv(ro1996_imputation, file = "documentation/flipbook/dataframes/ro1996_imputation.csv")
-# write.csv(ro2003_imputation, file = "documentation/flipbook/dataframes/ro2003_imputation.csv")
-# write.csv(ro2003_2_imputation, file = "documentation/flipbook/dataframes/ro2003_2_imputation.csv")
-# write.csv(ro2013_imputation, file = "documentation/flipbook/dataframes/ro2013_imputation.csv")
-
 imputation_d <- rbind(ro1987_imputation, ro1996_imputation, ro2003_imputation, ro2003_2_imputation, ro2013_imputation) # creating one big dataframe
 ```
 
