@@ -99,7 +99,7 @@ d91_clean <- d91 %>%
   dplyr::select(geo, age, value) # keeping the 3 variables of interest 
 # we now have a value (obs.) for each electoral district and age category
 
-# just looking through the age variable to check what's remianing
+# just looking through the age variable to check what's remaining
 table(d91_clean$age) 
 
 # people <1 y.o. are identified as "less than one year" and people >90 y.o. 
@@ -739,7 +739,6 @@ length(unique(d16_clean$dist_nb))
 
 ```
 
-
 ### 2) Merging Censuses Together by Representation Order
 
 Here, we will merge censuses that use the same representation orders. For example, we need to merge the 1991 and 1996 census that use both the 1987 r.o. in order to be able (later) to interpolate age breakdowns in 1993, an election that was run under the 1987 r.o. At this step, there were (yet again) some spelling differences in district names. This made my head want to explode, but I managed to reach the expected result !
@@ -951,6 +950,12 @@ ro2013_imputation <- ro2013 %>%
   gather(year, value, `2011`:`2016`) %>% 
   mutate(year = as.integer(year)) %>% 
   mutate(ro = "ro2013")
+
+# write.csv(ro1996_imputation, file = "documentation/flipbook/dataframes/ro1987_imputation.csv")
+# write.csv(ro1996_imputation, file = "documentation/flipbook/dataframes/ro1996_imputation.csv")
+# write.csv(ro2003_imputation, file = "documentation/flipbook/dataframes/ro2003_imputation.csv")
+# write.csv(ro2003_2_imputation, file = "documentation/flipbook/dataframes/ro2003_2_imputation.csv")
+# write.csv(ro2013_imputation, file = "documentation/flipbook/dataframes/ro2013_imputation.csv")
 
 imputation_d <- rbind(ro1987_imputation, ro1996_imputation, ro2003_imputation, ro2003_2_imputation, ro2013_imputation) # creating one big dataframe
 ```
