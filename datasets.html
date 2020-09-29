@@ -373,6 +373,19 @@ $(document).ready(function () {
 
 </div>
 <p>Here, I share with you the code I used to get there. It required dealing text data (the ridings' name), and a lot of back-and-forth between the code and output. I welcome comments on how to improve this code!</p>
+<p>The end-product can be found <a href="https://github.com/florencevdubois/florencevdubois.github.io/tree/master/documentation/data/output">here</a> in .csv format. The following variables are included:</p>
+<ul>
+<li><code>name</code>: MP's name</li>
+<li><code>birth</code>: MP's date of birth</li>
+<li><code>gender</code>: MP's gender</li>
+<li><code>pid</code>: MP's id</li>
+<li><code>riding_start_date</code>: start date for the parliamentary term</li>
+<li><code>riding_end_date</code>: end date for the parliamentary term</li>
+<li><code>dist_name</code>: riding's name</li>
+<li><code>year</code>: year used to match census info with parliamentarians' info (in general, they're the start year for the parliament, except in the 34th parliament, when 1991 is used instead of 1988)</li>
+<li><code>dist_nb</code>: riding's number</li>
+<li><code>0</code> to <code>100</code>: age categories -- number of people in each age</li>
+</ul>
 <div id="some-context" class="section level3">
 <h3>Some context</h3>
 <p>Because most elections since 1991 happened between census years (1993-1997-2000-2004-2006-2008-2011-2015), I interpolated population data in-between census years in order to obtain values on the demogrpahic profile of ridings on election years. As of now, I focused on the population's age, but I will extend this work to other demographic variables that are available at the level of federal ridings (e.g., the unemployment rate, the number of immigrants, etc.).</p>
@@ -442,7 +455,7 @@ d91_clean &lt;- d91 %&gt;%
   dplyr::select(geo, age, value) # keeping the 3 variables of interest 
 # we now have a value (obs.) for each electoral district and age category
 
-# just looking through the age variable to check what&#39;s remianing
+# just looking through the age variable to check what&#39;s remaining
 table(d91_clean$age) 
 
 # people &lt;1 y.o. are identified as &quot;less than one year&quot; and people &gt;90 y.o. 
@@ -1524,6 +1537,7 @@ length(unique(parl42$dist_name))</code></pre>
 <pre class="r"><code>census_for_district &lt;- imputation_data2 %&gt;% 
   filter(year == 1991 | year == 1993 | year == 1997 | year == 2000 | year == 2004 |
            year == 2006 | year == 2008 | year == 2011 | year == 2015) %&gt;% # keeping election years
+  # keeping election years for the appropriate representation orders
   filter(year ==  1991 &amp; ro == &quot;ro1987&quot; | 
          year ==  1993 &amp; ro == &quot;ro1987&quot; |
          year ==  1997 &amp; ro == &quot;ro1996&quot; |
@@ -1532,26 +1546,30 @@ length(unique(parl42$dist_name))</code></pre>
          year ==  2006 &amp; ro == &quot;ro2003_2&quot; |
          year ==  2008 &amp; ro == &quot;ro2003_2&quot; |
          year ==  2011 &amp; ro == &quot;ro2003_2&quot; |
-         year ==  2015 &amp; ro == &quot;ro2013&quot;) %&gt;% # keeping election years for the appropriate representation orders
+         year ==  2015 &amp; ro == &quot;ro2013&quot;) %&gt;% 
   select(year, dist_name, dist_nb, age, value) %&gt;% 
   spread(age, value) %&gt;% # from long to wide
-  separate(dist_name, sep = &quot;\\/&quot;, into = c(&quot;dist_name&quot;, &quot;dist_name_fr&quot;)) %&gt;% # removing french names that are sometimes added, as such: dist_name_end/dist_name_fr
+   # removing french names that are sometimes added, as such: dist_name_end/dist_name_fr
+  separate(dist_name, sep = &quot;\\/&quot;, into = c(&quot;dist_name&quot;, &quot;dist_name_fr&quot;)) %&gt;%
   select(-dist_name_fr) %&gt;% 
   mutate(dist_name = str_replace_all(dist_name, &quot;  &quot;, &quot; &quot;), # removing extra space in-between words
-         dist_name = str_replace_all(dist_name, &quot; &quot;, &quot;-&quot;)) # making names as similar as possible to candidates data
+         # making names as similar as possible to candidates data
+         dist_name = str_replace_all(dist_name, &quot; &quot;, &quot;-&quot;)) 
 
 # We will be merging each parliament dataframe individually to keep track of potential mistakes
-# I mentioned earlier that choosing the 1996 district names upon merging censuses could create problems later on. 
-# Turns out the 2000 census data is not so easily merged with the parliament data because the district names are not all the same. 
-# I have to manually recode the names of many districts in 2000.
-# After trying to merge once, I found other spelling discrepancies. This is why I am re-spelling some districts here.
-# This is a very manual task but I could not find an alternative.
-# So far things have run relatively smoothly, so I am not too frustrated by this task.
+# I mentioned earlier that choosing the 1996 district names upon merging censuses could create 
+# problems later on.Turns out the 2000 census data is not so easily merged with the parliament 
+# data because the district names are not all the same. I have to manually recode the names 
+# of many districts in 2000. After trying to merge once, I found other spelling discrepancies. 
+# This is why I am re-spelling some districts here. This is a very manual task but I could 
+# not find an alternative. So far things have run relatively smoothly, so I am not too 
+# frustrated by this task.
 election88 &lt;- census_for_district %&gt;% 
   filter(year == 1991) %&gt;% 
   mutate(dist_name = recode(dist_name, &quot;Laval-Est&quot; = &quot;Laval-East&quot;),
+         # these are basically lost in translation
          dist_name = recode(dist_name, &quot;Laval-Ouest&quot; = &quot;Laval-West&quot;),
-         dist_name = recode(dist_name, &quot;Mont-Royal&quot; = &quot;Mount-Royal&quot;), # these are basically lost in translation
+         dist_name = recode(dist_name, &quot;Mont-Royal&quot; = &quot;Mount-Royal&quot;), 
          dist_name = recode(dist_name, &quot;Capilano-Howe-Sound&quot; = &quot;Capilano&quot;)) 
 
 election93 &lt;- census_for_district %&gt;% 
@@ -1646,7 +1664,9 @@ parl40 &lt;- parl40 %&gt;% mutate(dist_name = str_replace_all(dist_name, &quot; 
 parl41 &lt;- parl41 %&gt;% mutate(dist_name = str_replace_all(dist_name, &quot; &quot;, &quot;-&quot;))
 parl42 &lt;- parl42 %&gt;% mutate(dist_name = str_replace_all(dist_name, &quot; &quot;, &quot;-&quot;))</code></pre>
 <p>FINAL step: Merging it all together! I tried using <code>stringdist_left_join()</code> to make things quicker and match districts that had similar but no identical spelling, but I noticed it introduced some mistakes. For example, districts that included 'East', 'West', 'Southeast', 'Southwest' would be present more than once after merging. I want a dataset that's as clean as possible so I prefer doing it manually.</p>
-<pre class="r"><code>join34 &lt;- left_join(parl34, election88)  # I also really love the join() functions (full_join, left_join, etc.). I had never used it that much before starting this project
+<pre class="r"><code># I also really love the join() functions (full_join, left_join, etc.). I had
+# never used it that much before starting this project
+join34 &lt;- left_join(parl34, election88)
 length(unique(join34$dist_name))
 check &lt;- join34 %&gt;% filter(is.na(dist_nb) == TRUE)  # it worked 
 
