@@ -18,8 +18,20 @@ Censuses of Canada are carried out every five years. Since 1991, the census data
 
 ![](documentation/census-parliament-img.png){width=1000px}
 
-
 Here, I share with you the code I used to get there. It required dealing text data (the ridings' name), and a lot of back-and-forth between the code and output. I welcome comments on how to improve this code! 
+
+The end-product can be found [here](https://github.com/florencevdubois/florencevdubois.github.io/tree/master/documentation/data/output) in .csv format. The following variables are included: 
+
+- `name`: MP's name
+- `birth`: MP's date of birth
+- `gender`: MP's gender
+- `pid`: MP's id
+- `riding_start_date`: start date for the parliamentary term
+- `riding_end_date`: end date for the parliamentary term
+- `dist_name`: riding's name
+- `year`: year used to match census info with parliamentarians' info (in general, they're the start year for the parliament, except in the 34th parliament, when 1991 is used instead of 1988)
+- `dist_nb`: riding's number
+- `0` to `100`: age categories -- number of people in each age 
 
 ### Some context 
 
