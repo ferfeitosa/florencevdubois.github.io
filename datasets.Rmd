@@ -25,7 +25,7 @@ The end-product can be found [here](https://github.com/florencevdubois/florencev
 - `name`: MP's name
 - `birth`: MP's date of birth
 - `gender`: MP's gender
-- `pid`: MP's id
+- `pid`: MP's party affiliation
 - `riding_start_date`: start date for the parliamentary term
 - `riding_end_date`: end date for the parliamentary term
 - `dist_name`: riding's name
@@ -1657,7 +1657,7 @@ d <- full_join(join34, join35) %>%
   full_join(join41) %>% 
   full_join(join42)
 
-write.csv(d, file = "documentation/data/output/census_parliament.csv") # You can find the final product in the following path in the Github repo for this website.
+#write.csv(d, file = "documentation/data/output/census_parliament.csv") # You can find the final product in the following path in the Github repo for this website.
 ```
 
 And, that's a wrap! There is an observation for every MP elected in the House between 1988 and 2015. The year variable ranges from 1991 to 2015 because the 1991 census information is used for the 34th parliament (1988-1993), as we did not have census data prior to 1991. Other years correspond to the starting years of each Parliament (1993, 1997, 2000, 2004, 2006, 2008, 2015). Every age group is its own variable (columns), from 0 to 100. Note that the 1991 and 1996 censuses capped the age variable at 90 years old. People older than 90 were categorized as 90 year olds. This is why there are no values in the 91-100 variables for the years 1991 to 2000, which were filled in using the 1991 or 1996 censuses. Stay tuned for more updates on this dataset (more demographic variables)!
